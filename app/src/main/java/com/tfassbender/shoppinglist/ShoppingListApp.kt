@@ -9,5 +9,6 @@ class ShoppingListApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+        container.appSync.start()
     }
 }

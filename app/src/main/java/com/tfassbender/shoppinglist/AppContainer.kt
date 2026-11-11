@@ -5,7 +5,9 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.tfassbender.shoppinglist.api.apis.APITokensApi
 import com.tfassbender.shoppinglist.api.apis.AccountApi
 import com.tfassbender.shoppinglist.api.apis.AuthApi
+import com.tfassbender.shoppinglist.api.apis.ListsApi
 import com.tfassbender.shoppinglist.api.apis.SpacesApi
+import com.tfassbender.shoppinglist.api.apis.SyncApi
 import com.tfassbender.shoppinglist.data.local.LocalStore
 import com.tfassbender.shoppinglist.data.local.SessionStore
 import com.tfassbender.shoppinglist.data.local.TokenCipher
@@ -15,7 +17,12 @@ import com.tfassbender.shoppinglist.data.remote.LOCAL_HOSTS
 import com.tfassbender.shoppinglist.data.repo.AccountRepository
 import com.tfassbender.shoppinglist.data.repo.ApiTokenRepository
 import com.tfassbender.shoppinglist.data.repo.AuthRepository
+import com.tfassbender.shoppinglist.data.repo.ListRepository
 import com.tfassbender.shoppinglist.data.repo.SpaceRepository
+import com.tfassbender.shoppinglist.data.sync.ApiSyncGateway
+import com.tfassbender.shoppinglist.data.sync.AppSync
+import com.tfassbender.shoppinglist.data.sync.SyncEngine
+import com.tfassbender.shoppinglist.data.sync.SyncWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -53,9 +60,20 @@ class AppContainer(context: Context) {
 
     val spaces = SpaceRepository(apiClient.createService(SpacesApi::class.java), store.spaces)
 
+    val syncEngine = SyncEngine(ApiSyncGateway(apiClient.createService(SyncApi::class.java)), store, clock, appScope)
+
+    val lists = ListRepository(syncEngine, apiClient.createService(ListsApi::class.java), clock)
+
+    val appSync = AppSync(context, auth, account, spaces, syncEngine, appScope)
+
     val apiTokens = ApiTokenRepository(apiClient.createService(APITokensApi::class.java))
 
     init {
-        auth.addLogoutHook { store.clear() }
+        auth.addLogoutHook {
+            syncEngine.reset()
+            SyncWorker.cancel(context)
+            store.clear()
+        }
+        spaces.addSpaceRemovedListener { syncEngine.drop(it) }
     }
 }

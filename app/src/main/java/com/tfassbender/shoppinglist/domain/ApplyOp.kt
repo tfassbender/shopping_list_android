@@ -16,7 +16,7 @@ private fun blankToNull(value: String?): String? = value?.trim()?.takeIf { it.is
 fun applyOp(lists: ListsById, op: SyncOp, spaceId: String, now: Instant): ListsById {
     if (op is SyncOp.CreateList) {
         if (op.listId in lists) return lists
-        return lists + (op.listId to ShoppingList(op.listId, spaceId, op.name.trim(), now))
+        return lists + (op.listId to ShoppingList(op.listId, spaceId, op.name.trim(), op.createdAt ?: now))
     }
     val list = lists[op.listId] ?: return lists // list deleted meanwhile: the server will reject the change
     return lists + (op.listId to applyToList(list, op, now))
@@ -37,7 +37,7 @@ private fun applyToList(list: ShoppingList, op: SyncOp, now: Instant): ShoppingL
                 unit = blankToNull(op.unit),
                 note = blankToNull(op.note),
                 categoryId = blankToNull(op.categoryId),
-                createdAt = now,
+                createdAt = op.createdAt ?: now,
             ),
         )
         is SyncOp.EditItem -> update(op.itemId) { item -> item.withField(op.field, op.value) }

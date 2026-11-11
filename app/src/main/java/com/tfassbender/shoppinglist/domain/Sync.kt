@@ -15,7 +15,13 @@ sealed interface SyncOp {
 
     @Serializable
     @SerialName("CREATE_LIST")
-    data class CreateList(override val changeId: String, override val listId: String, val name: String) : SyncOp
+    data class CreateList(
+        override val changeId: String,
+        override val listId: String,
+        val name: String,
+        /** Local only (not sent): keeps the optimistic list's creation time stable until the server confirms. */
+        val createdAt: SerializableInstant? = null,
+    ) : SyncOp
 
     @Serializable
     @SerialName("RENAME_LIST")
@@ -32,6 +38,8 @@ sealed interface SyncOp {
         val unit: String? = null,
         val note: String? = null,
         val categoryId: String? = null,
+        /** Local only (not sent): keeps the optimistic item's position stable until the server confirms. */
+        val createdAt: SerializableInstant? = null,
     ) : SyncOp
 
     /** Sets one field; null or blank clears an optional field (the name can't be cleared). */
