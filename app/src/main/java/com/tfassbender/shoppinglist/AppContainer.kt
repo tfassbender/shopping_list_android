@@ -5,7 +5,8 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.tfassbender.shoppinglist.api.apis.APITokensApi
 import com.tfassbender.shoppinglist.api.apis.AccountApi
 import com.tfassbender.shoppinglist.api.apis.AuthApi
-import com.tfassbender.shoppinglist.data.local.JsonFile
+import com.tfassbender.shoppinglist.api.apis.SpacesApi
+import com.tfassbender.shoppinglist.data.local.LocalStore
 import com.tfassbender.shoppinglist.data.local.SessionStore
 import com.tfassbender.shoppinglist.data.local.TokenCipher
 import com.tfassbender.shoppinglist.data.remote.ApiClientFactory
@@ -14,7 +15,7 @@ import com.tfassbender.shoppinglist.data.remote.LOCAL_HOSTS
 import com.tfassbender.shoppinglist.data.repo.AccountRepository
 import com.tfassbender.shoppinglist.data.repo.ApiTokenRepository
 import com.tfassbender.shoppinglist.data.repo.AuthRepository
-import com.tfassbender.shoppinglist.data.repo.CachedUser
+import com.tfassbender.shoppinglist.data.repo.SpaceRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -30,7 +31,6 @@ class AppContainer(context: Context) {
     /** Lives as long as the app process; for work that must not be cancelled with a screen. */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val clock: Clock = Clock.systemUTC()
-    private val storeDir = File(context.filesDir, "store")
 
     private val sessionStore = SessionStore(context.sessionDataStore, TokenCipher())
 
@@ -47,13 +47,15 @@ class AppContainer(context: Context) {
 
     val auth: AuthRepository = AuthRepository(apiClient.createService(AuthApi::class.java), sessionStore, clock, appScope)
 
-    private val meFile = JsonFile(File(storeDir, "me.json"), CachedUser.serializer()) { CachedUser() }
+    private val store = LocalStore(File(context.filesDir, "store"))
 
-    val account = AccountRepository(apiClient.createService(AccountApi::class.java), auth, meFile)
+    val account = AccountRepository(apiClient.createService(AccountApi::class.java), auth, store.me)
+
+    val spaces = SpaceRepository(apiClient.createService(SpacesApi::class.java), store.spaces)
 
     val apiTokens = ApiTokenRepository(apiClient.createService(APITokensApi::class.java))
 
     init {
-        auth.addLogoutHook { meFile.delete() }
+        auth.addLogoutHook { store.clear() }
     }
 }
