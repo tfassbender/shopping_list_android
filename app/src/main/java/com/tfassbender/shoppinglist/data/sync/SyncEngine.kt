@@ -137,6 +137,14 @@ class SyncEngine(
         ids.map { id -> scope.async { sync(id) } }.awaitAll()
     }
 
+    /**
+     * A live update says the space changed on the server at [seq]: sync if we're behind. Our own changes are
+     * announced too - after our sync we already have that seq, so nothing happens.
+     */
+    suspend fun syncIfBehind(spaceId: String, seq: Long?) {
+        if (seq == null || seq > file(spaceId).get().seq) sync(spaceId)
+    }
+
     /** Pushes pending changes, then pulls everything changed since the last pull. One run per space at a time. */
     suspend fun sync(spaceId: String) {
         val run = synchronized(inflight) {

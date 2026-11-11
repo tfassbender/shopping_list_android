@@ -324,6 +324,17 @@ class SyncEngineTest {
     }
 
     @Test
+    fun `live update - sync only if the server is ahead`() = runTest {
+        val engine = openedEngine() // seq 10 now
+
+        engine.syncIfBehind(SPACE, 10) // e.g. our own change, already pulled
+        assertEquals(listOf(0L), server.pulls)
+
+        engine.syncIfBehind(SPACE, 11)
+        assertEquals(listOf(0L, 10L), server.pulls)
+    }
+
+    @Test
     fun `reset forgets the in-memory state (logout)`() = runTest {
         val store = LocalStore(root)
         val engine = engineWith(store)

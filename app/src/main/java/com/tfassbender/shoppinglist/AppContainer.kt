@@ -26,6 +26,7 @@ import com.tfassbender.shoppinglist.data.repo.ListRepository
 import com.tfassbender.shoppinglist.data.repo.SpaceRepository
 import com.tfassbender.shoppinglist.data.sync.ApiSyncGateway
 import com.tfassbender.shoppinglist.data.sync.AppSync
+import com.tfassbender.shoppinglist.data.sync.LiveUpdates
 import com.tfassbender.shoppinglist.data.sync.SyncEngine
 import com.tfassbender.shoppinglist.data.sync.SyncWorker
 import kotlinx.coroutines.CoroutineScope
@@ -34,6 +35,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.time.Clock
+import java.util.concurrent.TimeUnit
 
 private val Context.sessionDataStore by preferencesDataStore(name = "session")
 private val Context.uiDataStore by preferencesDataStore(name = "ui")
@@ -47,7 +49,8 @@ class AppContainer(context: Context) {
 
     private val sessionStore = SessionStore(context.sessionDataStore, TokenCipher())
 
-    private val okHttp = ApiClientFactory.okHttp(
+    /** One builder per client, all with the same safeguards (AuthInterceptor, no redirects, logging). */
+    private fun okHttpBuilder() = ApiClientFactory.okHttp(
         baseUrl = BuildConfig.API_BASE_URL,
         // Runs on OkHttp's worker thread; DataStore serves this from memory after the first read.
         tokenProvider = { runBlocking { sessionStore.current()?.token } },
@@ -56,7 +59,7 @@ class AppContainer(context: Context) {
         // Release builds: HTTPS only. Debug builds: also the local dev server (emulator host / adb reverse).
         plainHttpHosts = if (BuildConfig.DEBUG) LOCAL_HOSTS + EMULATOR_HOST else emptySet(),
     )
-    private val apiClient = ApiClientFactory.create(BuildConfig.API_BASE_URL, okHttp)
+    private val apiClient = ApiClientFactory.create(BuildConfig.API_BASE_URL, okHttpBuilder())
 
     val auth: AuthRepository = AuthRepository(apiClient.createService(AuthApi::class.java), sessionStore, clock, appScope)
 
@@ -76,7 +79,16 @@ class AppContainer(context: Context) {
 
     val layouts = LayoutRepository(apiClient.createService(LayoutsApi::class.java), syncEngine, uiPreferences)
 
-    val appSync = AppSync(context, auth, account, spaces, syncEngine, appScope)
+    val appSync = AppSync(context, auth, account, spaces, syncEngine, appScope) { listener ->
+        LiveUpdates(
+            // The server sends a PING every 25 s: no data for 60 s means the connection is dead.
+            client = okHttpBuilder().readTimeout(60, TimeUnit.SECONDS).build(),
+            url = BuildConfig.API_BASE_URL + "api/events",
+            hasSession = { auth.currentSession() != null },
+            listener = listener,
+            scope = appScope,
+        )
+    }
 
     val apiTokens = ApiTokenRepository(apiClient.createService(APITokensApi::class.java))
 
