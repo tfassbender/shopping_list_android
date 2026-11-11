@@ -145,22 +145,30 @@ class SyncEngine(
         if (seq == null || seq > file(spaceId).get().seq) sync(spaceId)
     }
 
-    /** Pushes pending changes, then pulls everything changed since the last pull. One run per space at a time. */
+    /**
+     * Pushes pending changes, then pulls everything changed since the last pull. One run per space at a
+     * time: a call during a running sync joins it - and runs once more afterwards if changes are still
+     * queued (that run may have started before them), so everything queued before the call is sent.
+     */
     suspend fun sync(spaceId: String) {
+        var joined = false
         val run = synchronized(inflight) {
-            inflight[spaceId] ?: scope.async(start = CoroutineStart.LAZY) { runSync(spaceId) }.also { inflight[spaceId] = it }
+            inflight[spaceId]?.also { joined = true }
+                ?: scope.async(start = CoroutineStart.LAZY) { runSync(spaceId) }.also { inflight[spaceId] = it }
         }
         try {
             run.await()
         } finally {
             synchronized(inflight) { if (inflight[spaceId] === run) inflight.remove(spaceId) }
         }
+        if (joined && hasQueued(spaceId) && statusFlow.value == SyncStatus.IDLE) return sync(spaceId)
         afterSync(spaceId)
     }
 
-    private suspend fun afterSync(spaceId: String) {
-        val pending = summaries.value[spaceId]?.pending ?: 0
-        if (pending == 0) return
+    private fun hasQueued(spaceId: String) = (summaries.value[spaceId]?.pending ?: 0) > 0
+
+    private fun afterSync(spaceId: String) {
+        if (!hasQueued(spaceId)) return
         // Changes made while syncing go out with the next run. After failures the next attempt comes from
         // reconnect / interval / background work, not a tight retry loop.
         if (statusFlow.value == SyncStatus.IDLE) scheduleSync(spaceId) else pendingChangesListener?.onChangesPending()

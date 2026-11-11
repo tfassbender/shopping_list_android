@@ -21,6 +21,18 @@ server disagree, fix this file. A running server also serves the spec at `/q/ope
 - Non-members of a space get `404 SPACE_NOT_FOUND` (existence is not revealed); members calling owner
   actions get `403 OWNER_ONLY`.
 
+## Quirks of the server's OpenAPI spec
+
+The app's client is generated from the spec, which has gaps (server issue
+[#4](https://github.com/tfassbender/shopping_list_server/issues/4)), patched by
+`.claude/skills/update-openapi/fetch_openapi.py`:
+- Endpoints returning a JAX-RS `Response` have an empty schema: the create endpoints (201 with a body,
+  see the tables below) and all 204 endpoints.
+- `CreatedInviteDto` / `CreatedApiTokenDto` are missing from the schemas.
+- Optional query parameters (`sort`, `q`, `limit`, `since`, `name`) are marked required.
+- Null fields are sometimes left out although marked required (`SessionResponse.token`) → the client
+  decodes with `explicitNulls = false`.
+
 ## Session model
 
 - JWT valid **30 days**, "sliding": the client exchanges it via `POST /api/auth/refresh` (web: when the

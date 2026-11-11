@@ -6,7 +6,7 @@ app is "just another client" – no business rule may exist only in the app.
 
 Setup and conventions follow the sibling project `../homeautomation` (same family: Compose, manual DI,
 generated API client, encrypted token). Look there before inventing something new – but reimplement,
-don't copy wholesale (exception: `TokenCipher` / `TokenStore`, see below).
+don't copy wholesale (exception: `TokenCipher`, see below).
 
 ## Overview
 
@@ -42,7 +42,7 @@ com.tfassbender.shoppinglist
 ├── api/         generated (build/generated/openapi) – never edit, never hand-write API models
 ├── data/
 │   ├── remote/  ApiClientFactory (OkHttp, AuthInterceptor), apiCall { } / ApiResult / ApiError, SSE client
-│   ├── local/   SpaceFileStore (JSON files), TokenStore + TokenCipher, DataStore preferences
+│   ├── local/   LocalStore + JsonFile (JSON files), SessionStore + TokenCipher, UiPreferences (DataStore)
 │   ├── sync/    SyncEngine, SyncWorker, connectivity monitor, live updates (SSE)
 │   └── repo/    repositories – the only API the UI layer uses (Flows + suspend functions)
 ├── AppContainer.kt
@@ -52,7 +52,7 @@ com.tfassbender.shoppinglist
 Rules:
 - `domain` has no Android / Retrofit imports → fast plain-JVM tests.
 - Generated API models stay at the edge (`data`); the UI works with domain models.
-- **The local store is the single source of truth for cached data.** Repositories expose `StateFlow`s
+- **The local store is the single source of truth for cached data.** Repositories expose `Flow`s
   backed by the in-memory state of the stores; network answers are written to the store, never handed to
   the UI directly.
 - **Online-only operations** (space management, invites, members, API tokens, account) call the API and
@@ -74,8 +74,8 @@ filesDir/store/
                             warnings, catalog, layouts, my favorites per layout
 ```
 
-- Loaded into memory on first use, exposed as `StateFlow`; every change: update memory, then write the
-  whole file atomically (`androidx.core.util.AtomicFile`: temp file + rename) under a `Mutex` per space.
+- Loaded into memory on first use, exposed as `Flow`; every change: write the whole file atomically
+  (temp file + atomic move, plain `java.nio`, so the store is testable on the JVM) under a `Mutex` per file.
 - `schemaVersion` in every file; new fields get defaults (`ignoreUnknownKeys`, default values), so most
   format changes need no migration. Unreadable file → drop it and resync from the server (the queue
   would be lost, so format changes must stay compatible).
@@ -108,7 +108,7 @@ Mirrors `frontend/src/offline/syncEngine.ts` of the server repo:
 ## Session & security
 
 - **Token encrypted** exactly as in homeautomation: `TokenCipher` (AES-256/GCM, key in the Android
-  Keystore, stored as Base64(IV || ciphertext)) + `TokenStore` (DataStore, `decryptOrNull` → treated as
+  Keystore, stored as Base64(IV || ciphertext)) + `SessionStore` (DataStore, `decryptOrNull` → treated as
   logged out). Copied from `../homeautomation/app/src/main/java/com/tfassbender/homeautomation/data/`,
   extended with `expiresAt` / `receivedAt` for the sliding session.
 - Sliding session: refresh the JWT when it is older than one day (like the web app).
@@ -124,7 +124,8 @@ Mirrors `frontend/src/offline/syncEngine.ts` of the server repo:
 The server is not deployed yet → configurable:
 - `BuildConfig.API_BASE_URL` per build type (debug: `http://10.0.2.2:4720/`, release: production URL
   once known).
-- Debug builds: runtime override (DataStore) for testing on a real device in the local network.
+- No runtime override: on a real device use `adb reverse tcp:4720 tcp:4720` and localhost, so plain HTTP
+  stays limited to fixed local hosts.
 
 ## Sharing code with the server
 

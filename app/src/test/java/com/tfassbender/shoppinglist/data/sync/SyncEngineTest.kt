@@ -187,6 +187,23 @@ class SyncEngineTest {
     }
 
     @Test
+    fun `a sync call joining a running sync still sends what was queued before the call`() = runTest {
+        val engine = openedEngine()
+        val gate = CompletableDeferred<Unit>()
+        server.pushGate = gate
+        engine.enqueue(SPACE, add(engine, "a", "A"))
+        val first = async { engine.sync(SPACE) } // e.g. started by the app (login, foreground)
+        server.pushStarted.await()
+        engine.enqueue(SPACE, add(engine, "b", "B"))
+        val second = async { engine.sync(SPACE) } // the caller expects B to be sent
+        gate.complete(Unit)
+        listOf(first, second).awaitAll()
+
+        assertEquals(0, engine.pendingCount.first())
+        assertEquals(listOf(1, 1), server.pushes.map { it.second.size })
+    }
+
+    @Test
     fun `accepted changes stay visible if the pull afterwards fails`() = runTest {
         val engine = openedEngine()
         engine.enqueue(SPACE, add(engine, "a", "A"))
