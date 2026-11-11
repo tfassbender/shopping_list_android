@@ -5,18 +5,23 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.tfassbender.shoppinglist.api.apis.APITokensApi
 import com.tfassbender.shoppinglist.api.apis.AccountApi
 import com.tfassbender.shoppinglist.api.apis.AuthApi
+import com.tfassbender.shoppinglist.api.apis.CatalogApi
+import com.tfassbender.shoppinglist.api.apis.LayoutsApi
 import com.tfassbender.shoppinglist.api.apis.ListsApi
 import com.tfassbender.shoppinglist.api.apis.SpacesApi
 import com.tfassbender.shoppinglist.api.apis.SyncApi
 import com.tfassbender.shoppinglist.data.local.LocalStore
 import com.tfassbender.shoppinglist.data.local.SessionStore
 import com.tfassbender.shoppinglist.data.local.TokenCipher
+import com.tfassbender.shoppinglist.data.local.UiPreferences
 import com.tfassbender.shoppinglist.data.remote.ApiClientFactory
 import com.tfassbender.shoppinglist.data.remote.EMULATOR_HOST
 import com.tfassbender.shoppinglist.data.remote.LOCAL_HOSTS
 import com.tfassbender.shoppinglist.data.repo.AccountRepository
 import com.tfassbender.shoppinglist.data.repo.ApiTokenRepository
 import com.tfassbender.shoppinglist.data.repo.AuthRepository
+import com.tfassbender.shoppinglist.data.repo.CatalogRepository
+import com.tfassbender.shoppinglist.data.repo.LayoutRepository
 import com.tfassbender.shoppinglist.data.repo.ListRepository
 import com.tfassbender.shoppinglist.data.repo.SpaceRepository
 import com.tfassbender.shoppinglist.data.sync.ApiSyncGateway
@@ -31,6 +36,7 @@ import java.io.File
 import java.time.Clock
 
 private val Context.sessionDataStore by preferencesDataStore(name = "session")
+private val Context.uiDataStore by preferencesDataStore(name = "ui")
 
 /** Manual dependency injection: the app-wide singletons, created once in [ShoppingListApp]. */
 class AppContainer(context: Context) {
@@ -64,6 +70,12 @@ class AppContainer(context: Context) {
 
     val lists = ListRepository(syncEngine, apiClient.createService(ListsApi::class.java), clock)
 
+    val catalog = CatalogRepository(apiClient.createService(CatalogApi::class.java), syncEngine)
+
+    private val uiPreferences = UiPreferences(context.uiDataStore)
+
+    val layouts = LayoutRepository(apiClient.createService(LayoutsApi::class.java), syncEngine, uiPreferences)
+
     val appSync = AppSync(context, auth, account, spaces, syncEngine, appScope)
 
     val apiTokens = ApiTokenRepository(apiClient.createService(APITokensApi::class.java))
@@ -73,6 +85,7 @@ class AppContainer(context: Context) {
             syncEngine.reset()
             SyncWorker.cancel(context)
             store.clear()
+            uiPreferences.clear()
         }
         spaces.addSpaceRemovedListener { syncEngine.drop(it) }
     }
