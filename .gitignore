@@ -51,3 +51,6 @@ desktop.ini
 # Misc
 *.bak
 *.tmp
+
+# Claude local instructions
+CLAUDE.local.md

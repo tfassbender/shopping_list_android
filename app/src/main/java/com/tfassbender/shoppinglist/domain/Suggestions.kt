@@ -1,29 +1,26 @@
 package com.tfassbender.shoppinglist.domain
 
 /**
- * Offline autocomplete from what is on this device: item names of the space's lists (with their last
- * category/unit) and the usage counts of the catalog. Ranking like the server's suggestions: name-prefix
- * matches first, then word-prefix matches, each by usage count, then name.
- *
- * Weaker than the server's history (items removed from all lists are unknown here) - server issue #1
- * would deliver the history to clients.
+ * Offline autocomplete: ranks the space's item history ([Catalog.history]) like the server's
+ * `SpaceCatalog.suggestions` (and the web app's `rankSuggestions`). An entry matches if its name or one of
+ * its words starts with the query (normalized); names starting with the query come first, then most used,
+ * most recently used, and by name. A blank query gives no suggestions.
  */
-fun localSuggestions(query: String, lists: Collection<ShoppingList>, usage: Map<String, Int>, limit: Int = 8): List<Suggestion> {
+fun rankSuggestions(history: List<HistoryEntry>, query: String, limit: Int = SUGGESTION_LIMIT): List<Suggestion> {
     val q = normalizeName(query)
     if (q.isEmpty()) return emptyList()
-    // Newest item per name wins: it carries the latest category/unit.
-    val latest = lists.flatMap { it.items }.sortedByDescending { it.createdAt }.distinctBy { normalizeName(it.name) }
-    val candidates = latest.map { Suggestion(it.name, it.categoryId, it.unit, usage[normalizeName(it.name)] ?: 0) }
-    fun rank(s: Suggestion): Int? {
-        val name = normalizeName(s.name)
-        return when {
-            name.startsWith(q) -> 0
-            name.split(' ').drop(1).any { it.startsWith(q) } -> 1
-            else -> null
-        }
-    }
-    return candidates.mapNotNull { s -> rank(s)?.let { it to s } }
-        .sortedWith(compareBy<Pair<Int, Suggestion>> { it.first }.thenByDescending { it.second.usageCount }.thenBy { it.second.name.lowercase() })
+    val startsWithQuery = { entry: HistoryEntry -> normalizeName(entry.name).startsWith(q) }
+    return history
+        .filter { entry -> startsWithQuery(entry) || normalizeName(entry.name).split(' ').any { it.startsWith(q) } }
+        .sortedWith(
+            compareByDescending(startsWithQuery)
+                .thenByDescending { it.usageCount }
+                .thenByDescending { it.lastUsed }
+                .thenBy { it.name.lowercase() },
+        )
         .take(limit)
-        .map { it.second }
+        .map { Suggestion(it.name, it.categoryId, it.unit, it.usageCount) }
 }
+
+/** Number of suggestions the quick-add field shows (as the web app). */
+const val SUGGESTION_LIMIT = 20

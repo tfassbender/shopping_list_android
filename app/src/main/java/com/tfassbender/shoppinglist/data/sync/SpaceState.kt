@@ -9,7 +9,7 @@ import kotlinx.serialization.Serializable
 
 /**
  * Everything the app keeps per space, persisted as `spaces/<spaceId>.json` (like the web app's IndexedDB
- * entry per space, plus catalog, layouts and favorites).
+ * entry per space, plus catalog incl. item history and layouts).
  */
 @Serializable
 data class SpaceState(
@@ -25,6 +25,4 @@ data class SpaceState(
     /** null until the first pull. */
     val catalog: Catalog? = null,
     val layouts: List<ShopLayout> = emptyList(),
-    /** My favorites per layout id (normalized names). Not part of the pull - loaded per layout. */
-    val favorites: Map<String, List<String>> = emptyMap(),
 )

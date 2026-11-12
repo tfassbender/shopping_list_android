@@ -1,10 +1,9 @@
 package com.tfassbender.shoppinglist.data.repo
 
 import com.tfassbender.shoppinglist.api.apis.LayoutsApi
+import com.tfassbender.shoppinglist.api.models.CopyLayoutRequest
 import com.tfassbender.shoppinglist.api.models.CreateLayoutRequest
 import com.tfassbender.shoppinglist.api.models.EntriesRequest
-import com.tfassbender.shoppinglist.api.models.FavoriteRequest
-import com.tfassbender.shoppinglist.api.models.FavoritesDto
 import com.tfassbender.shoppinglist.api.models.LayoutDto
 import com.tfassbender.shoppinglist.api.models.UpdateLayoutRequest
 import com.tfassbender.shoppinglist.data.local.UiPreferences
@@ -15,8 +14,8 @@ import com.tfassbender.shoppinglist.data.remote.map
 import com.tfassbender.shoppinglist.data.remote.onSuccess
 import com.tfassbender.shoppinglist.data.remote.toDomain
 import com.tfassbender.shoppinglist.data.remote.toDto
-import com.tfassbender.shoppinglist.data.sync.SpaceState
 import com.tfassbender.shoppinglist.data.sync.SyncEngine
+import com.tfassbender.shoppinglist.domain.Item
 import com.tfassbender.shoppinglist.domain.ItemSorter
 import com.tfassbender.shoppinglist.domain.LayoutMode
 import com.tfassbender.shoppinglist.domain.ShopLayout
@@ -27,8 +26,8 @@ import kotlinx.coroutines.flow.map
 import retrofit2.Response
 
 /**
- * Shop layouts (the walking order through a shop) and my favorites per layout. Reading and sorting work
- * offline (layouts come with the sync pull, favorites are cached); editing needs a connection.
+ * Shop layouts (the walking order through a shop). Reading and sorting work offline (layouts come with the
+ * sync pull); editing needs a connection.
  */
 class LayoutRepository(
     private val api: LayoutsApi,
@@ -51,13 +50,17 @@ class LayoutRepository(
     suspend fun create(spaceId: String, name: String, mode: LayoutMode = LayoutMode.CATEGORIES): ApiResult<ShopLayout> =
         upsert(spaceId) { api.createLayout(spaceId = spaceId, createLayoutRequest = CreateLayoutRequest(name = name.trim(), mode = mode.toDto())) }
 
+    /** A copy with mode, category / item order and connected lists. Errors: `LAYOUT_EXISTS`, `INVALID_NAME`. */
+    suspend fun copy(spaceId: String, layoutId: String, name: String): ApiResult<ShopLayout> =
+        upsert(spaceId) { api.copyLayout(layoutId = layoutId, spaceId = spaceId, copyLayoutRequest = CopyLayoutRequest(name = name.trim())) }
+
     /** Rename / switch the mode. */
     suspend fun update(spaceId: String, layoutId: String, name: String, mode: LayoutMode): ApiResult<ShopLayout> =
         upsert(spaceId) { api.updateLayout(layoutId = layoutId, spaceId = spaceId, updateLayoutRequest = UpdateLayoutRequest(name = name.trim(), mode = mode.toDto())) }
 
     suspend fun delete(spaceId: String, layoutId: String): ApiResult<Unit> =
         apiCallNoContent { api.deleteLayout(layoutId = layoutId, spaceId = spaceId) }.onSuccess {
-            engine.updateState(spaceId) { state -> state.copy(layouts = state.layouts.filterNot { it.id == layoutId }, favorites = state.favorites - layoutId) }
+            engine.updateState(spaceId) { state -> state.copy(layouts = state.layouts.filterNot { it.id == layoutId }) }
         }
 
     /** Mode CATEGORIES: the complete new order of category ids. */
@@ -75,22 +78,6 @@ class LayoutRepository(
     suspend fun disconnectList(spaceId: String, layoutId: String, listId: String): ApiResult<ShopLayout> =
         upsert(spaceId) { api.disconnectLayoutFromList(layoutId = layoutId, listId = listId, spaceId = spaceId) }
 
-    // ---- favorites (personal) ----
-
-    /** My favorites in a layout (normalized names), cached; [refreshFavorites] loads them. */
-    fun favorites(spaceId: String, layoutId: String): Flow<Set<String>> =
-        engine.state(spaceId).map { it.favorites[layoutId].orEmpty().toSet() }.distinctUntilChanged()
-
-    /** Favorites aren't part of the sync pull - call when a layout is used (server issue #3). */
-    suspend fun refreshFavorites(spaceId: String, layoutId: String): ApiResult<Set<String>> =
-        favoritesCall(spaceId, layoutId) { api.getFavorites(layoutId = layoutId, spaceId = spaceId) }
-
-    suspend fun addFavorite(spaceId: String, layoutId: String, itemName: String): ApiResult<Set<String>> =
-        favoritesCall(spaceId, layoutId) { api.addFavorite(layoutId = layoutId, spaceId = spaceId, favoriteRequest = FavoriteRequest(itemName.trim())) }
-
-    suspend fun removeFavorite(spaceId: String, layoutId: String, itemName: String): ApiResult<Set<String>> =
-        favoritesCall(spaceId, layoutId) { api.removeFavorite(layoutId = layoutId, spaceId = spaceId, name = itemName.trim()) }
-
     // ---- sorting ----
 
     /** The shop last used on this list on this device (null = order of adding). */
@@ -102,36 +89,21 @@ class LayoutRepository(
      * The items of a list sorted for walking through [layoutId]'s shop (null or unknown layout: order of
      * adding). Computed on the device, so it works offline. [checkedToEnd] is the user's setting.
      */
-    fun sortedItems(spaceId: String, listId: String, layoutId: String?, checkedToEnd: Boolean): Flow<List<ItemSorter.SortedItem>> =
+    fun sortedItems(spaceId: String, listId: String, layoutId: String?, checkedToEnd: Boolean): Flow<List<Item>> =
         combine(engine.lists(spaceId), engine.state(spaceId)) { lists, state ->
             val items = lists[listId]?.items.orEmpty()
             val layout = state.layouts.firstOrNull { it.id == layoutId }
             if (layout == null) {
-                ItemSorter.byAdding(items, checkedToEnd).map { ItemSorter.SortedItem(it, favorite = false) }
+                ItemSorter.byAdding(items, checkedToEnd)
             } else {
-                sortForLayout(state, items, layout, checkedToEnd)
+                ItemSorter.sort(items, layout, state.catalog?.categories.orEmpty(), state.catalog?.usage.orEmpty(), checkedToEnd)
             }
         }.distinctUntilChanged()
-
-    private fun sortForLayout(state: SpaceState, items: List<com.tfassbender.shoppinglist.domain.Item>, layout: ShopLayout, checkedToEnd: Boolean) =
-        ItemSorter.sort(
-            items = items,
-            layout = layout,
-            categories = state.catalog?.categories.orEmpty(),
-            favorites = state.favorites[layout.id].orEmpty().toSet(),
-            usage = state.catalog?.usage.orEmpty(),
-            checkedToEnd = checkedToEnd,
-        )
 
     // ---- internals ----
 
     private suspend fun upsert(spaceId: String, call: suspend () -> Response<LayoutDto>): ApiResult<ShopLayout> =
         apiCall(call).map { it.toDomain() }.onSuccess { layout ->
             engine.updateState(spaceId) { state -> state.copy(layouts = state.layouts.filterNot { it.id == layout.id } + layout) }
-        }
-
-    private suspend fun favoritesCall(spaceId: String, layoutId: String, call: suspend () -> Response<FavoritesDto>): ApiResult<Set<String>> =
-        apiCall(call).map { it.names.toSet() }.onSuccess { names ->
-            engine.updateState(spaceId) { it.copy(favorites = it.favorites + (layoutId to names.sorted())) }
         }
 }

@@ -127,7 +127,14 @@
               "type": "integer",
               "format": "int32"
             },
-            "description": "How often each item was bought (normalized lowercase name -> count); for client-side sorting"
+            "description": "How often each item was bought (normalized lowercase name -> count); for client-side sorting. Derived from `history`"
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HistoryEntryDto"
+            },
+            "description": "The complete item history (alphabetically), so clients can rank suggestions offline like `getSuggestions`"
           }
         }
       },
@@ -213,6 +220,22 @@
           "REJECTED"
         ]
       },
+      "CopyLayoutRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the copy"
+          },
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional client-generated id"
+          }
+        }
+      },
       "CreateApiTokenRequest": {
         "type": "object",
         "properties": {
@@ -274,6 +297,41 @@
               "null"
             ],
             "description": "Optional client-generated id (UUID), e.g. for lists created offline"
+          }
+        }
+      },
+      "CreatedApiTokenDto": {
+        "type": "object",
+        "required": [
+          "token",
+          "rawToken"
+        ],
+        "properties": {
+          "token": {
+            "$ref": "#/components/schemas/ApiTokenDto"
+          },
+          "rawToken": {
+            "type": "string",
+            "description": "The raw token - shown only once. Send it as `Authorization: Bearer <token>`."
+          }
+        }
+      },
+      "CreatedInviteDto": {
+        "type": "object",
+        "required": [
+          "invite",
+          "token",
+          "url"
+        ],
+        "properties": {
+          "invite": {
+            "$ref": "#/components/schemas/InviteDto"
+          },
+          "token": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
           }
         }
       },
@@ -341,28 +399,6 @@
           }
         }
       },
-      "FavoriteRequest": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          }
-        }
-      },
-      "FavoritesDto": {
-        "type": "object",
-        "required": [
-          "names"
-        ],
-        "properties": {
-          "names": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
       "HealthResponse": {
         "type": "object",
         "required": [
@@ -375,6 +411,40 @@
           },
           "version": {
             "type": "string"
+          }
+        }
+      },
+      "HistoryEntryDto": {
+        "type": "object",
+        "required": [
+          "name",
+          "categoryId",
+          "unit",
+          "usageCount",
+          "lastUsed"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "unit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "usageCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastUsed": {
+            "$ref": "#/components/schemas/Instant"
           }
         }
       },
@@ -488,10 +558,6 @@
           "seq": {
             "type": "integer",
             "format": "int64"
-          },
-          "favorite": {
-            "type": "boolean",
-            "description": "Personal favorite in the layout given as `sort` (always false without `sort`)"
           }
         }
       },
@@ -689,6 +755,7 @@
           "lists",
           "listIds",
           "catalog",
+          "historyChanges",
           "layouts",
           "layoutIds"
         ],
@@ -716,7 +783,7 @@
             "description": "Ids of all existing lists"
           },
           "catalog": {
-            "description": "Categories and units, only if changed",
+            "description": "The complete catalog (categories, units, usage, history), only if categories/units changed or history entries were removed or renamed - replace the local catalog including its history",
             "type": [
               "object",
               "null"
@@ -729,6 +796,13 @@
                 "type": "null"
               }
             ]
+          },
+          "historyChanges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HistoryEntryDto"
+            },
+            "description": "History entries added or updated since `since` (e.g. items added or checked); empty if `catalog` is sent. Merge into the local history by normalized name and update `usage` from their usageCount"
           },
           "layouts": {
             "type": [
@@ -810,6 +884,15 @@
               "string",
               "null"
             ]
+          }
+        }
+      },
+      "RenameHistoryRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The new name; if it is already remembered, both entries are merged"
           }
         }
       },
@@ -1332,41 +1415,6 @@
           "DELETE_SKIPPED",
           "LIST_DELETED"
         ]
-      },
-      "CreatedInviteDto": {
-        "type": "object",
-        "required": [
-          "invite",
-          "token",
-          "url"
-        ],
-        "properties": {
-          "invite": {
-            "$ref": "#/components/schemas/InviteDto"
-          },
-          "token": {
-            "type": "string"
-          },
-          "url": {
-            "type": "string"
-          }
-        }
-      },
-      "CreatedApiTokenDto": {
-        "type": "object",
-        "required": [
-          "token",
-          "rawToken"
-        ],
-        "properties": {
-          "token": {
-            "$ref": "#/components/schemas/ApiTokenDto"
-          },
-          "rawToken": {
-            "type": "string",
-            "description": "The raw token - shown only once."
-          }
-        }
       }
     },
     "securitySchemes": {
@@ -1395,7 +1443,7 @@
     },
     {
       "name": "Layouts",
-      "description": "Shop layouts for sorting lists, and personal favorites"
+      "description": "Shop layouts for sorting lists"
     },
     {
       "name": "Lists",
@@ -1453,11 +1501,11 @@
           "required": true
         },
         "responses": {
-          "400": {
-            "description": "Bad Request"
-          },
           "204": {
             "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
           }
         }
       }
@@ -1548,9 +1596,6 @@
           "required": true
         },
         "responses": {
-          "400": {
-            "description": "Bad Request"
-          },
           "201": {
             "description": "Created",
             "content": {
@@ -1560,6 +1605,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request"
           }
         }
       }
@@ -1582,11 +1630,11 @@
           "required": true
         },
         "responses": {
-          "400": {
-            "description": "Bad Request"
-          },
           "204": {
             "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
           }
         }
       }
@@ -1821,15 +1869,6 @@
           "required": true
         },
         "responses": {
-          "401": {
-            "description": "Not Authorized"
-          },
-          "403": {
-            "description": "Not Allowed"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
           "201": {
             "description": "Created",
             "content": {
@@ -1839,6 +1878,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Not Authorized"
+          },
+          "403": {
+            "description": "Not Allowed"
+          },
+          "400": {
+            "description": "Bad Request"
           }
         },
         "security": [
@@ -1910,14 +1958,14 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "No Content"
+          },
           "401": {
             "description": "Not Authorized"
           },
           "403": {
             "description": "Not Allowed"
-          },
-          "204": {
-            "description": "No Content"
           }
         },
         "security": [
@@ -1931,7 +1979,7 @@
     },
     "/api/spaces/{spaceId}/catalog": {
       "get": {
-        "summary": "Categories (in order) and units of a space",
+        "summary": "Categories (in order), units and item history of a space",
         "operationId": "getCatalog",
         "tags": [
           "Catalog"
@@ -2001,15 +2049,6 @@
           "required": true
         },
         "responses": {
-          "401": {
-            "description": "Not Authorized"
-          },
-          "403": {
-            "description": "Not Allowed"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
           "201": {
             "description": "Created",
             "content": {
@@ -2019,6 +2058,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Not Authorized"
+          },
+          "403": {
+            "description": "Not Allowed"
+          },
+          "400": {
+            "description": "Bad Request"
           }
         },
         "security": [
@@ -2202,9 +2250,184 @@
         ]
       }
     },
+    "/api/spaces/{spaceId}/catalog/history": {
+      "put": {
+        "summary": "Rename an item of the history (merged if the new name exists); returns the history",
+        "operationId": "renameHistoryItem",
+        "tags": [
+          "Catalog"
+        ],
+        "parameters": [
+          {
+            "name": "spaceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The item name (case-insensitive)",
+            "required": true,
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameHistoryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HistoryEntryDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not Authorized"
+          },
+          "403": {
+            "description": "Not Allowed"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": [
+              "user"
+            ]
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Forget an item of the history (no longer suggested); returns the history",
+        "operationId": "removeHistoryItem",
+        "tags": [
+          "Catalog"
+        ],
+        "parameters": [
+          {
+            "name": "spaceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The item name (case-insensitive)",
+            "required": true,
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HistoryEntryDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not Authorized"
+          },
+          "403": {
+            "description": "Not Allowed"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": [
+              "user"
+            ]
+          }
+        ]
+      },
+      "get": {
+        "summary": "All items used before in this space (source of the suggestions), alphabetically",
+        "operationId": "getItemHistory",
+        "tags": [
+          "Catalog"
+        ],
+        "parameters": [
+          {
+            "name": "spaceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HistoryEntryDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not Authorized"
+          },
+          "403": {
+            "description": "Not Allowed"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": [
+              "user"
+            ]
+          }
+        ]
+      }
+    },
     "/api/spaces/{spaceId}/catalog/suggestions": {
       "get": {
         "summary": "Autocomplete from the item history: prefix matches, most used first, with last category/unit",
+        "description": "Ranking (clients mirror it offline with `CatalogDto.history`): names are compared normalized (trimmed, lowercase, runs of whitespace as one space). An entry matches if its name or one of its space-separated words starts with the query. Order: names starting with the query first, then by usageCount (descending), lastUsed (newest first) and name (case-insensitive). A blank query gives no suggestions.",
         "operationId": "getSuggestions",
         "tags": [
           "Catalog"
@@ -2219,16 +2442,17 @@
             }
           },
           {
+            "required": false,
             "name": "limit",
             "in": "query",
             "schema": {
               "type": "integer",
               "format": "int32",
               "default": 8
-            },
-            "required": false
+            }
           },
           {
+            "required": false,
             "name": "q",
             "in": "query",
             "schema": {
@@ -2236,8 +2460,7 @@
                 "string",
                 "null"
               ]
-            },
-            "required": false
+            }
           }
         ],
         "responses": {
@@ -2399,14 +2622,14 @@
             }
           },
           {
+            "required": false,
             "name": "since",
             "in": "query",
             "schema": {
               "type": "integer",
               "format": "int64",
               "default": 0
-            },
-            "required": false
+            }
           }
         ],
         "responses": {
@@ -2509,15 +2732,6 @@
           "required": true
         },
         "responses": {
-          "401": {
-            "description": "Not Authorized"
-          },
-          "403": {
-            "description": "Not Allowed"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
           "201": {
             "description": "Created",
             "content": {
@@ -2527,6 +2741,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Not Authorized"
+          },
+          "403": {
+            "description": "Not Allowed"
+          },
+          "400": {
+            "description": "Bad Request"
           }
         },
         "security": [
@@ -2564,14 +2787,14 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "No Content"
+          },
           "401": {
             "description": "Not Authorized"
           },
           "403": {
             "description": "Not Allowed"
-          },
-          "204": {
-            "description": "No Content"
           }
         },
         "security": [
@@ -2656,15 +2879,6 @@
           "required": true
         },
         "responses": {
-          "401": {
-            "description": "Not Authorized"
-          },
-          "403": {
-            "description": "Not Allowed"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
           "201": {
             "description": "Created",
             "content": {
@@ -2674,6 +2888,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Not Authorized"
+          },
+          "403": {
+            "description": "Not Allowed"
+          },
+          "400": {
+            "description": "Bad Request"
           }
         },
         "security": [
@@ -2824,14 +3047,14 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "No Content"
+          },
           "401": {
             "description": "Not Authorized"
           },
           "403": {
             "description": "Not Allowed"
-          },
-          "204": {
-            "description": "No Content"
           }
         },
         "security": [
@@ -2908,121 +3131,10 @@
         ]
       }
     },
-    "/api/spaces/{spaceId}/layouts/{layoutId}/favorites": {
-      "delete": {
-        "summary": "Remove a personal favorite (name as query parameter)",
-        "operationId": "removeFavorite",
-        "tags": [
-          "Layouts"
-        ],
-        "parameters": [
-          {
-            "name": "layoutId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "spaceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "name",
-            "in": "query",
-            "schema": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "required": false
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FavoritesDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not Authorized"
-          },
-          "403": {
-            "description": "Not Allowed"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": [
-              "user"
-            ]
-          }
-        ]
-      },
-      "get": {
-        "summary": "The caller's favorite item names in this layout",
-        "operationId": "getFavorites",
-        "tags": [
-          "Layouts"
-        ],
-        "parameters": [
-          {
-            "name": "layoutId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "spaceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FavoritesDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not Authorized"
-          },
-          "403": {
-            "description": "Not Allowed"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": [
-              "user"
-            ]
-          }
-        ]
-      },
+    "/api/spaces/{spaceId}/layouts/{layoutId}/copy": {
       "post": {
-        "summary": "Mark an item name as personal favorite in this layout",
-        "operationId": "addFavorite",
+        "summary": "Copy a layout: same mode, category and item order and connected lists",
+        "operationId": "copyLayout",
         "tags": [
           "Layouts"
         ],
@@ -3048,19 +3160,19 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/FavoriteRequest"
+                "$ref": "#/components/schemas/CopyLayoutRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "201": {
+            "description": "Created",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FavoritesDto"
+                  "$ref": "#/components/schemas/LayoutDto"
                 }
               }
             }
@@ -3285,14 +3397,14 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "No Content"
+          },
           "401": {
             "description": "Not Authorized"
           },
           "403": {
             "description": "Not Allowed"
-          },
-          "204": {
-            "description": "No Content"
           }
         },
         "security": [
@@ -3377,15 +3489,6 @@
           "required": true
         },
         "responses": {
-          "401": {
-            "description": "Not Authorized"
-          },
-          "403": {
-            "description": "Not Allowed"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
           "201": {
             "description": "Created",
             "content": {
@@ -3395,6 +3498,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Not Authorized"
+          },
+          "403": {
+            "description": "Not Allowed"
+          },
+          "400": {
+            "description": "Bad Request"
           }
         },
         "security": [
@@ -3432,6 +3544,7 @@
           },
           {
             "description": "Optional layout id: sort the items for this shop",
+            "required": false,
             "name": "sort",
             "in": "query",
             "schema": {
@@ -3439,8 +3552,7 @@
                 "string",
                 "null"
               ]
-            },
-            "required": false
+            }
           }
         ],
         "responses": {
@@ -3494,14 +3606,14 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "No Content"
+          },
           "401": {
             "description": "Not Authorized"
           },
           "403": {
             "description": "Not Allowed"
-          },
-          "204": {
-            "description": "No Content"
           }
         },
         "security": [
@@ -3539,6 +3651,7 @@
           },
           {
             "description": "Optional layout id: sort the items for this shop",
+            "required": false,
             "name": "sort",
             "in": "query",
             "schema": {
@@ -3546,8 +3659,7 @@
                 "string",
                 "null"
               ]
-            },
-            "required": false
+            }
           }
         ],
         "requestBody": {
@@ -3561,15 +3673,6 @@
           "required": true
         },
         "responses": {
-          "401": {
-            "description": "Not Authorized"
-          },
-          "403": {
-            "description": "Not Allowed"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
           "201": {
             "description": "Created",
             "content": {
@@ -3579,6 +3682,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Not Authorized"
+          },
+          "403": {
+            "description": "Not Allowed"
+          },
+          "400": {
+            "description": "Bad Request"
           }
         },
         "security": [
@@ -3624,6 +3736,7 @@
           },
           {
             "description": "Optional layout id: sort the items for this shop",
+            "required": false,
             "name": "sort",
             "in": "query",
             "schema": {
@@ -3631,8 +3744,7 @@
                 "string",
                 "null"
               ]
-            },
-            "required": false
+            }
           }
         ],
         "requestBody": {
@@ -3704,6 +3816,7 @@
           },
           {
             "description": "Optional layout id: sort the items for this shop",
+            "required": false,
             "name": "sort",
             "in": "query",
             "schema": {
@@ -3711,8 +3824,7 @@
                 "string",
                 "null"
               ]
-            },
-            "required": false
+            }
           }
         ],
         "responses": {
@@ -3776,6 +3888,7 @@
           },
           {
             "description": "Optional layout id: sort the items for this shop",
+            "required": false,
             "name": "sort",
             "in": "query",
             "schema": {
@@ -3783,8 +3896,7 @@
                 "string",
                 "null"
               ]
-            },
-            "required": false
+            }
           }
         ],
         "responses": {
@@ -3848,6 +3960,7 @@
           },
           {
             "description": "Optional layout id: sort the items for this shop",
+            "required": false,
             "name": "sort",
             "in": "query",
             "schema": {
@@ -3855,8 +3968,7 @@
                 "string",
                 "null"
               ]
-            },
-            "required": false
+            }
           }
         ],
         "responses": {
@@ -3912,6 +4024,7 @@
           },
           {
             "description": "Optional layout id: sort the items for this shop",
+            "required": false,
             "name": "sort",
             "in": "query",
             "schema": {
@@ -3919,8 +4032,7 @@
                 "string",
                 "null"
               ]
-            },
-            "required": false
+            }
           }
         ],
         "requestBody": {
@@ -3989,6 +4101,7 @@
           },
           {
             "description": "Optional layout id: sort the items for this shop",
+            "required": false,
             "name": "sort",
             "in": "query",
             "schema": {
@@ -3996,8 +4109,7 @@
                 "string",
                 "null"
               ]
-            },
-            "required": false
+            }
           }
         ],
         "responses": {
@@ -4100,14 +4212,14 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "No Content"
+          },
           "401": {
             "description": "Not Authorized"
           },
           "403": {
             "description": "Not Allowed"
-          },
-          "204": {
-            "description": "No Content"
           }
         },
         "security": [
@@ -4273,14 +4385,14 @@
           "Account"
         ],
         "responses": {
+          "204": {
+            "description": "No Content"
+          },
           "401": {
             "description": "Not Authorized"
           },
           "403": {
             "description": "Not Allowed"
-          },
-          "204": {
-            "description": "No Content"
           }
         },
         "security": [
@@ -4345,15 +4457,6 @@
           "required": true
         },
         "responses": {
-          "401": {
-            "description": "Not Authorized"
-          },
-          "403": {
-            "description": "Not Allowed"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
           "201": {
             "description": "Created",
             "content": {
@@ -4363,6 +4466,15 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Not Authorized"
+          },
+          "403": {
+            "description": "Not Allowed"
+          },
+          "400": {
+            "description": "Bad Request"
           }
         },
         "security": [
@@ -4392,14 +4504,14 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "No Content"
+          },
           "401": {
             "description": "Not Authorized"
           },
           "403": {
             "description": "Not Allowed"
-          },
-          "204": {
-            "description": "No Content"
           }
         },
         "security": [
@@ -4590,6 +4702,6 @@
   "info": {
     "title": "Shopping List API",
     "version": "0.1.0",
-    "description": "REST API of the shopping list app, used by the web app, the Android app and AI agents.   Authenticate with `Authorization: Bearer <token>`: either a session token from POST /api/auth/login or a personal   API token (`slt_...`, created by the user in the app settings; read-only tokens may only use GET).   Data model: a user is member of spaces (GET /api/spaces); a space holds shopping lists (GET /api/spaces/{spaceId}/lists),   categories/units (GET /api/spaces/{spaceId}/catalog) and shop layouts (GET /api/spaces/{spaceId}/layouts).   Add an item with POST /api/spaces/{spaceId}/lists/{listId}/items {\"name\": \"Milk\"} - the category is filled in from the item history.   Offline clients sync per space: POST /api/spaces/{spaceId}/changes with baseSeq = seq of the last pull,   then GET /api/spaces/{spaceId}/changes?since=<that same baseSeq>.   Errors are JSON {\"code\", \"message\"} with a stable code."
+    "description": "REST API of the shopping list app, used by the web app, the Android app and AI agents.   Authenticate with `Authorization: Bearer <token>`: either a session token from POST /api/auth/login or a personal   API token (`slt_...`, created by the user in the app settings; read-only tokens may only use GET).   Data model: a user is member of spaces (GET /api/spaces); a space holds shopping lists (GET /api/spaces/{spaceId}/lists),   categories/units (GET /api/spaces/{spaceId}/catalog) and shop layouts (GET /api/spaces/{spaceId}/layouts).   Add an item with POST /api/spaces/{spaceId}/lists/{listId}/items {\"name\": \"Milk\"} - the category is filled in from the item history.   Offline clients sync per space: POST /api/spaces/{spaceId}/changes with baseSeq = seq of the last pull,   then GET /api/spaces/{spaceId}/changes?since=<that same baseSeq>.   Errors are JSON {\"code\", \"message\"} with a stable code.   Links into the app (stable, also handled by the Android app via /.well-known/assetlinks.json):   <public-base-url>/invite/<token> (POST /api/invites/{token}/accept), /verify-email?token=<token> (POST /api/auth/verify-email),   /reset-password?token=<token> (POST /api/auth/reset-password)."
   }
 }

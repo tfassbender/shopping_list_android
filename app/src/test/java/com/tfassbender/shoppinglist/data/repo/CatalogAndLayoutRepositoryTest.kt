@@ -10,8 +10,8 @@ import com.tfassbender.shoppinglist.data.local.UiPreferences
 import com.tfassbender.shoppinglist.data.remote.ApiResult
 import com.tfassbender.shoppinglist.data.sync.ApiSyncGateway
 import com.tfassbender.shoppinglist.data.sync.SyncEngine
-import com.tfassbender.shoppinglist.domain.ShoppingList
-import com.tfassbender.shoppinglist.domain.Item
+import com.tfassbender.shoppinglist.domain.Catalog
+import com.tfassbender.shoppinglist.domain.HistoryEntry
 import com.tfassbender.shoppinglist.jsonResponse
 import com.tfassbender.shoppinglist.testApiClient
 import kotlinx.coroutines.flow.first
@@ -68,7 +68,7 @@ class CatalogAndLayoutRepositoryTest {
 
     /** One pull that brings a list, the catalog and two layouts. */
     private fun pullJson() =
-        """{"seq":5,"fullResync":true,"listIds":["l1"],"layoutIds":["aldi","rewe"],"catalog":$catalogJson,
+        """{"seq":5,"fullResync":true,"historyChanges":[],"listIds":["l1"],"layoutIds":["aldi","rewe"],"catalog":$catalogJson,
            "layouts":[${layoutJson("rewe", "Rewe", "\"veg\",\"dairy\"")},${layoutJson("aldi", "Aldi", "\"dairy\",\"veg\"", "\"l1\"")}],
            "lists":[{"id":"l1","name":"Groceries","createdAt":"$t0","seq":5,"deleted":false,"items":[
              ${item("i1", "Carrots", "veg")},${item("i2", "Milk", "dairy")},${item("i3", "Butter", "dairy")}]}]}"""
@@ -81,23 +81,20 @@ class CatalogAndLayoutRepositoryTest {
         val s = setup()
         server.enqueue(jsonResponse(pullJson()))
         s.engine.sync("s1")
-        server.enqueue(jsonResponse("""{"names":["milk"]}"""))
-        s.layouts.refreshFavorites("s1", "aldi")
         server.shutdown() // offline from here on
 
         assertEquals(listOf("Aldi", "Rewe"), s.layouts.shopChoices("s1", "l1").first().map { it.name })
         assertEquals(listOf("veg", "dairy"), s.catalog.catalog("s1").first()!!.categories.map { it.id })
 
         val aldi = s.layouts.sortedItems("s1", "l1", "aldi", checkedToEnd = false).first()
-        // dairy first; favorite Milk before Butter (most bought)
-        assertEquals(listOf("Milk", "Butter", "Carrots"), aldi.map { it.item.name })
-        assertEquals(listOf(true, false, false), aldi.map { it.favorite })
+        // dairy first; Butter (most bought) before Milk
+        assertEquals(listOf("Butter", "Milk", "Carrots"), aldi.map { it.name })
 
         val rewe = s.layouts.sortedItems("s1", "l1", "rewe", checkedToEnd = false).first()
-        assertEquals(listOf("Carrots", "Butter", "Milk"), rewe.map { it.item.name })
+        assertEquals(listOf("Carrots", "Butter", "Milk"), rewe.map { it.name })
 
         val noShop = s.layouts.sortedItems("s1", "l1", null, checkedToEnd = false).first()
-        assertEquals(listOf("Carrots", "Milk", "Butter"), noShop.map { it.item.name })
+        assertEquals(listOf("Carrots", "Milk", "Butter"), noShop.map { it.name })
     }
 
     @Test
@@ -140,14 +137,14 @@ class CatalogAndLayoutRepositoryTest {
     }
 
     @Test
-    fun `suggestions come from the server, offline from the local lists`() = runTest {
+    fun `suggestions come from the server, offline from the cached history`() = runTest {
         val s = setup()
         server.enqueue(jsonResponse("""[{"name":"Milk","categoryId":"dairy","unit":"l","usageCount":4}]"""))
         assertEquals("l", s.catalog.suggestions("s1", "mi").single().unit)
         assertTrue(server.takeRequest().path!!.contains("q=mi"))
 
         s.engine.updateState("s1") {
-            it.copy(confirmed = mapOf("l1" to ShoppingList("l1", "s1", "G", Instant.EPOCH, items = listOf(Item("x", "Mints", createdAt = Instant.EPOCH)))))
+            it.copy(catalog = Catalog(history = listOf(HistoryEntry("Mints", null, null, 1, Instant.EPOCH), HistoryEntry("Bread", null, null, 5, Instant.EPOCH))))
         }
         server.shutdown()
 

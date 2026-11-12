@@ -69,9 +69,9 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
             // Local dev server (./gradlew :backend:quarkusDev in the server repo). 10.0.2.2 is the host
-            // machine as seen from the emulator; on a real device use `adb reverse tcp:4720 tcp:4720`
+            // machine as seen from the emulator; on a real device use `adb reverse tcp:4723 tcp:4723`
             // and localhost.
-            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:4720/\"")
+            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:4723/\"")
         }
         release {
             isMinifyEnabled = true

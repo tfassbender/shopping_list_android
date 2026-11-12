@@ -71,7 +71,7 @@ filesDir/store/
 ├── me.json                 user incl. settings (cache of GET /api/users/me)
 ├── spaces.json             my spaces (cache of GET /api/spaces)
 └── spaces/<spaceId>.json   SpaceState: seq, confirmed lists+items, acked + queued changes, merge
-                            warnings, catalog, layouts, my favorites per layout
+                            warnings, catalog (incl. item history), layouts
 ```
 
 - Loaded into memory on first use, exposed as `Flow`; every change: write the whole file atomically
@@ -122,9 +122,9 @@ Mirrors `frontend/src/offline/syncEngine.ts` of the server repo:
 ## Server URL
 
 The server is not deployed yet → configurable:
-- `BuildConfig.API_BASE_URL` per build type (debug: `http://10.0.2.2:4720/`, release: production URL
+- `BuildConfig.API_BASE_URL` per build type (debug: `http://10.0.2.2:4723/`, release: production URL
   once known).
-- No runtime override: on a real device use `adb reverse tcp:4720 tcp:4720` and localhost, so plain HTTP
+- No runtime override: on a real device use `adb reverse tcp:4723 tcp:4723` and localhost, so plain HTTP
   stays limited to fixed local hosts.
 
 ## Sharing code with the server

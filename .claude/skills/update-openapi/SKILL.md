@@ -10,16 +10,16 @@ plugin). This skill refreshes that file from a running server.
 
 ## Steps
 
-1. Make sure the server runs (local dev server: `./gradlew :backend:quarkusDev` in
-   `D:\intelliJ_workspace\shopping_list_server`, port 4720). Then run from the repo root:
+1. Make sure the server runs (local dev server: `./gradlew :backend:quarkusDev` in the server repo,
+   local path in `CLAUDE.local.md`, port 4723). Then run from the repo root:
    ```sh
    python .claude/skills/update-openapi/fetch_openapi.py            # local dev server
    python .claude/skills/update-openapi/fetch_openapi.py https://…  # another server
    ```
-   It downloads `/q/openapi?format=json`, **patches** the known gaps of the Quarkus spec (empty response
-   schemas of endpoints returning a JAX-RS `Response`, missing `Created*Dto` schemas, optional query
-   parameters marked required, the SSE endpoint) and writes `doc/openapi.json`.
-   - A `NOTE: ... no longer needed?` means the server fixed a gap → remove that patch from the script.
+   It downloads `/q/openapi?format=json`, drops the SSE endpoint (own OkHttp client) and writes
+   `doc/openapi.json`.
+   - A `NOTE: empty response schema ...` means the server lost a response schema (the generator would
+     produce `Any`) – report it, it has to be fixed on the server.
    - Not reachable → the server isn't running; tell the user, don't retry in a loop.
 
 2. Show what changed: `git diff --stat doc/openapi.json`, then summarize the API changes for the user

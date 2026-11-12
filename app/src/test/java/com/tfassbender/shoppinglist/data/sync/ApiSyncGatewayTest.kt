@@ -75,7 +75,9 @@ class ApiSyncGatewayTest {
                      "items":[{"id":"i1","name":"Milk","quantity":"2","unit":null,"note":null,"categoryId":"dairy","checked":true,"deleted":false,"createdAt":"2026-11-11T10:00:00Z","seq":12},
                               {"id":"i2","name":"Bread","quantity":null,"unit":null,"note":null,"categoryId":null,"checked":false,"deleted":true,"createdAt":"2026-11-11T10:00:00Z","seq":11}]}],
                    "listIds":["l1"],
-                   "catalog":{"categories":[{"id":"dairy","name":"Dairy","color":"#0000ff"}],"units":["l","kg"],"usage":{"milk":4}},
+                   "catalog":{"categories":[{"id":"dairy","name":"Dairy","color":"#0000ff"}],"units":["l","kg"],"usage":{"milk":4},
+                     "history":[{"name":"Milk","categoryId":"dairy","unit":"l","usageCount":4,"lastUsed":"2026-11-11T10:00:00Z"}]},
+                   "historyChanges":[],
                    "layouts":[{"id":"a","name":"Aldi","mode":"ITEMS","categoryOrder":[],"itemOrder":["Milk"],"listIds":["l1"],"createdAt":"2026-11-11T10:00:00Z"}],
                    "layoutIds":["a"]}""",
             ),
@@ -90,12 +92,13 @@ class ApiSyncGatewayTest {
         assertTrue(items[0].item.checked)
         assertEquals("dairy", items[0].item.categoryId)
         assertEquals(mapOf("milk" to 4), pull.catalog!!.usage)
+        assertEquals("l", pull.catalog!!.history.single().unit)
         assertEquals(LayoutMode.ITEMS, pull.layouts!!.single().mode)
     }
 
     @Test
     fun `pull without catalog and layouts`() = runTest {
-        server.enqueue(jsonResponse("""{"seq":3,"fullResync":true,"lists":[],"listIds":[],"catalog":null,"layouts":null,"layoutIds":[]}"""))
+        server.enqueue(jsonResponse("""{"seq":3,"fullResync":true,"lists":[],"listIds":[],"catalog":null,"historyChanges":[{"name":"Milk","categoryId":null,"unit":null,"usageCount":1,"lastUsed":"2026-11-11T10:00:00Z"}],"layouts":null,"layoutIds":[]}"""))
 
         val pull = (gateway.pull("s1", 0) as ApiResult.Success).value
 

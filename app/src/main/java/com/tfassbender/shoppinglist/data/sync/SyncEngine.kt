@@ -67,6 +67,13 @@ class SyncEngine(
     private val summaries = MutableStateFlow<Map<String, Summary>>(emptyMap())
     private data class Summary(val pending: Int, val warnings: List<MergeWarning>)
 
+    /**
+     * Spaces the server answered with 404 (deleted, or the user was removed / left) -> number of unsaved
+     * changes that had to be dropped. Cleared when the space syncs again (e.g. invited again) or on [reset].
+     */
+    private val lostFlow = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val accessLost: StateFlow<Map<String, Int>> = lostFlow.asStateFlow()
+
     var pendingChangesListener: PendingChangesListener? = null
 
     val status: StateFlow<SyncStatus> = statusFlow.asStateFlow()
@@ -114,7 +121,7 @@ class SyncEngine(
         scheduleSync(spaceId)
     }
 
-    /** Changes other parts of a space's state (catalog, layouts, favorites) - see the repositories. */
+    /** Changes other parts of a space's state (catalog, layouts) - see the repositories. */
     suspend fun updateState(spaceId: String, transform: (SpaceState) -> SpaceState): SpaceState {
         val updated = file(spaceId).update(transform)
         refreshSummary(spaceId, updated)
@@ -199,7 +206,10 @@ class SyncEngine(
         // Pull since the base (not the push seq): other users' changes may lie in between.
         when (val pulled = gateway.pull(spaceId, base)) {
             is ApiResult.Failure -> return handleError(spaceId, pulled.error)
-            is ApiResult.Success -> updateState(spaceId) { it.withPull(spaceId, pulled.value) }
+            is ApiResult.Success -> {
+                updateState(spaceId) { it.withPull(spaceId, pulled.value) }
+                lostFlow.update { it - spaceId }
+            }
         }
         statusFlow.value = SyncStatus.IDLE
     }
@@ -236,9 +246,10 @@ class SyncEngine(
             seq = pull.seq,
             confirmed = applyPull(confirmed, pull, spaceId),
             acked = emptyList(),
-            catalog = pull.catalog ?: catalog,
+            // A complete catalog replaces the local one; otherwise only changed history entries come. Without
+            // a local catalog they are ignored - the first pull always brings the complete catalog.
+            catalog = pull.catalog ?: catalog?.mergeHistory(pull.historyChanges),
             layouts = newLayouts,
-            favorites = favorites.filterKeys { it in layoutIds },
         )
     }
 
@@ -246,7 +257,9 @@ class SyncEngine(
         when {
             error is ApiError.Network -> statusFlow.value = SyncStatus.OFFLINE // keep everything, retry later
             error is ApiError.Server && error.status == 404 -> {
-                // The space is gone or we were removed: drop its local data.
+                // The space is gone or we were removed: drop its local data (unsaved changes can't be saved anywhere).
+                val dropped = file(spaceId).get().queue.size
+                lostFlow.update { it + (spaceId to (it[spaceId] ?: 0) + dropped) }
                 drop(spaceId)
                 statusFlow.value = SyncStatus.IDLE
             }
@@ -283,6 +296,7 @@ class SyncEngine(
             scheduled.clear()
         }
         summaries.value = emptyMap()
+        lostFlow.value = emptyMap()
         statusFlow.value = SyncStatus.IDLE
     }
 

@@ -11,6 +11,7 @@ import com.tfassbender.shoppinglist.data.remote.ApiResult
 import com.tfassbender.shoppinglist.data.remote.apiCall
 import com.tfassbender.shoppinglist.data.remote.map
 import com.tfassbender.shoppinglist.data.remote.toDomain
+import com.tfassbender.shoppinglist.data.remote.toDomain
 import com.tfassbender.shoppinglist.domain.ChangeResult
 import com.tfassbender.shoppinglist.domain.ChangeStatus
 import com.tfassbender.shoppinglist.domain.Item
@@ -88,6 +89,7 @@ private fun PullResponse.toDomain() = PullResult(
     },
     listIds = listIds,
     catalog = catalog?.toDomain(),
+    historyChanges = historyChanges.map { it.toDomain() },
     layouts = layouts?.map { it.toDomain() },
     layoutIds = layoutIds,
 )

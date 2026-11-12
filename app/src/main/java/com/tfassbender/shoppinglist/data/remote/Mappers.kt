@@ -4,6 +4,7 @@ import com.tfassbender.shoppinglist.api.models.ApiTokenDto
 import com.tfassbender.shoppinglist.api.models.CatalogDto
 import com.tfassbender.shoppinglist.api.models.CreatedApiTokenDto
 import com.tfassbender.shoppinglist.api.models.CreatedInviteDto
+import com.tfassbender.shoppinglist.api.models.HistoryEntryDto
 import com.tfassbender.shoppinglist.api.models.InviteDto
 import com.tfassbender.shoppinglist.api.models.InvitePreviewDto
 import com.tfassbender.shoppinglist.api.models.LayoutDto
@@ -17,6 +18,7 @@ import com.tfassbender.shoppinglist.domain.Catalog
 import com.tfassbender.shoppinglist.domain.Category
 import com.tfassbender.shoppinglist.domain.CreatedApiToken
 import com.tfassbender.shoppinglist.domain.CreatedInvite
+import com.tfassbender.shoppinglist.domain.HistoryEntry
 import com.tfassbender.shoppinglist.domain.Invite
 import com.tfassbender.shoppinglist.domain.InvitePreview
 import com.tfassbender.shoppinglist.domain.LayoutMode
@@ -66,7 +68,10 @@ fun CatalogDto.toDomain() = Catalog(
     categories = categories.map { Category(it.id, it.name, it.color) },
     units = units,
     usage = usage.orEmpty(),
+    history = history.orEmpty().map { it.toDomain() },
 )
+
+fun HistoryEntryDto.toDomain() = HistoryEntry(name, categoryId, unit, usageCount, lastUsed.toInstant())
 
 fun LayoutDto.toDomain() = ShopLayout(
     id, name, LayoutMode.valueOf(mode.name), categoryOrder, itemOrder, listIds, createdAt.toInstant(),

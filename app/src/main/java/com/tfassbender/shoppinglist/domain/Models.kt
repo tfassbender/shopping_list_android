@@ -99,8 +99,36 @@ data class Catalog(
     /** In the space's order. */
     val categories: List<Category> = emptyList(),
     val units: List<String> = emptyList(),
-    /** How often each item was bought: normalized name (see [normalizeName]) → count. */
+    /** How often each item was bought: normalized name (see [normalizeName]) → count. Derived from [history]. */
     val usage: Map<String, Int> = emptyMap(),
+    /** All items used before in the space (alphabetically) - the source of offline suggestions. */
+    val history: List<HistoryEntry> = emptyList(),
+) {
+    /**
+     * Adds or replaces history entries (matched by normalized name, like the server) and keeps [usage] in
+     * step, since the sorting reads it. Port of the web app's `mergeHistory`.
+     */
+    fun mergeHistory(changes: List<HistoryEntry>): Catalog {
+        if (changes.isEmpty()) return this
+        val byName = LinkedHashMap(history.associateBy { normalizeName(it.name) })
+        val newUsage = usage.toMutableMap()
+        for (entry in changes) {
+            val key = normalizeName(entry.name)
+            byName[key] = entry
+            if (entry.usageCount > 0) newUsage[key] = entry.usageCount else newUsage.remove(key)
+        }
+        return copy(history = byName.values.sortedBy { it.name.lowercase() }, usage = newUsage)
+    }
+}
+
+/** An item used before in a space: last category and unit, how often it was bought, when it was last used. */
+@Serializable
+data class HistoryEntry(
+    val name: String,
+    val categoryId: String? = null,
+    val unit: String? = null,
+    val usageCount: Int = 0,
+    val lastUsed: SerializableInstant,
 )
 
 @Serializable

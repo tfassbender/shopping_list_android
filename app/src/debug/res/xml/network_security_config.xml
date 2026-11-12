@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Debug builds only: plain HTTP to the local dev server (emulator host 10.0.2.2, or localhost via
-     `adb reverse tcp:4720 tcp:4720`). Everything else stays HTTPS only. -->
+     `adb reverse tcp:4723 tcp:4723`). Everything else stays HTTPS only. -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="false" />
     <domain-config cleartextTrafficPermitted="true">

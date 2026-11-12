@@ -8,8 +8,8 @@ server disagree, fix this file. A running server also serves the spec at `/q/ope
 
 ## Basics
 
-- Base path `/api`, JSON only. Local dev server: `http://localhost:4720` (Android emulator:
-  `http://10.0.2.2:4720`). Start it with `./gradlew :backend:quarkusDev` in the server repo; in dev mode
+- Base path `/api`, JSON only. Local dev server: `http://localhost:4723` (Android emulator:
+  `http://10.0.2.2:4723`). Start it with `./gradlew :backend:quarkusDev` in the server repo; in dev mode
   email verification is disabled (registration returns a token directly).
 - Auth: `Authorization: Bearer <token>` – a session JWT from login/register. (Personal API tokens `slt_...`
   exist for AI agents; the app always uses a JWT.)
@@ -21,15 +21,12 @@ server disagree, fix this file. A running server also serves the spec at `/q/ope
 - Non-members of a space get `404 SPACE_NOT_FOUND` (existence is not revealed); members calling owner
   actions get `403 OWNER_ONLY`.
 
-## Quirks of the server's OpenAPI spec
+## The server's OpenAPI spec
 
-The app's client is generated from the spec, which has gaps (server issue
-[#4](https://github.com/tfassbender/shopping_list_server/issues/4)), patched by
-`.claude/skills/update-openapi/fetch_openapi.py`:
-- Endpoints returning a JAX-RS `Response` have an empty schema: the create endpoints (201 with a body,
-  see the tables below) and all 204 endpoints.
-- `CreatedInviteDto` / `CreatedApiTokenDto` are missing from the schemas.
-- Optional query parameters (`sort`, `q`, `limit`, `since`, `name`) are marked required.
+The app's client is generated from the spec. Since server issue
+[#4](https://github.com/tfassbender/shopping_list_server/issues/4) it documents all response schemas and
+optional query parameters; `.claude/skills/update-openapi/fetch_openapi.py` only drops the SSE endpoint
+(own OkHttp client) and warns if an empty response schema shows up again.
 - Null fields are sometimes left out although marked required (`SessionResponse.token`) → the client
   decodes with `explicitNulls = false`.
 
@@ -133,7 +130,7 @@ plain endpoints are still useful for reading, for deleting lists (not a sync cha
 | POST   | `/{listId}/remove-checked`             | –    | `ListDto` |
 
 - `ListDto = {id, spaceId, name, createdAt, seq, items: ItemDto[], sortedBy?}` (no tombstones)
-- `ItemDto = {id, name, quantity?, unit?, note?, categoryId?, checked, createdAt, seq, favorite}`
+- `ItemDto = {id, name, quantity?, unit?, note?, categoryId?, checked, createdAt, seq}`
 - `ListSummaryDto = {id, name, openItems, checkedItems, seq}`
 - If an added item has no category, the server fills it in from the item history.
 
@@ -147,16 +144,24 @@ plain endpoints are still useful for reading, for deleting lists (not a sync cha
 | PUT    | `/categories/order`          | `{ids: [...all category ids]}` | `CatalogDto` |
 | PUT    | `/units`                     | `{units: [...]}` (replaces) | `CatalogDto` |
 | GET    | `/suggestions?q=&limit=8`    | –    | `SuggestionDto[]` |
+| GET    | `/history`                   | –    | `HistoryEntryDto[]` (alphabetically) |
+| PUT    | `/history?name=`             | `{name}` | `HistoryEntryDto[]` (rename; merged if the new name exists) |
+| DELETE | `/history?name=`             | –    | `HistoryEntryDto[]` (forget) |
 
-- `CatalogDto = {categories: [{id, name, color}] (in order), units: string[], usage: {normalizedName: count}}`
-- `SuggestionDto = {name, categoryId?, unit?, usageCount}` – prefix matches first, then word-prefix
-  matches, each by usage and recency.
+- `CatalogDto = {categories: [{id, name, color}] (in order), units: string[], usage: {normalizedName: count},
+  history: HistoryEntryDto[]}`
+- `HistoryEntryDto = {name, categoryId?, unit?, usageCount, lastUsed}` – items used before in the space.
+- `SuggestionDto = {name, categoryId?, unit?, usageCount}` – names starting with the query first, then
+  word-prefix matches; by usage count, then recency, then name. The app ranks the cached `history` the
+  same way offline (`rankSuggestions`).
+- Category names are unique per space (case/space-insensitive, `CATEGORY_EXISTS`).
 
-### Shop layouts & favorites (`/api/spaces/{spaceId}/layouts`)
+### Shop layouts (`/api/spaces/{spaceId}/layouts`)
 | Method | Path                               | Body | Response |
 |--------|------------------------------------|------|----------|
 | GET    | `/`                                | –    | `LayoutDto[]` |
 | POST   | `/`                                | `{name, mode?: CATEGORIES|ITEMS, id?}` | 201 `LayoutDto` |
+| POST   | `/{layoutId}/copy`                 | `{name, id?}` | 201 `LayoutDto` (same mode, orders, connected lists) |
 | GET    | `/{layoutId}`                      | –    | `LayoutDto` |
 | PUT    | `/{layoutId}`                      | `{name, mode}` | `LayoutDto` |
 | DELETE | `/{layoutId}`                      | –    | 204 |
@@ -164,9 +169,6 @@ plain endpoints are still useful for reading, for deleting lists (not a sync cha
 | PUT    | `/{layoutId}/item-order`           | `{entries: [itemNames]}` | `LayoutDto` |
 | PUT    | `/{layoutId}/lists/{listId}`       | –    | `LayoutDto` (connect list) |
 | DELETE | `/{layoutId}/lists/{listId}`       | –    | `LayoutDto` (disconnect list) |
-| GET    | `/{layoutId}/favorites`            | –    | `{names: [...]}` (personal) |
-| POST   | `/{layoutId}/favorites`            | `{name}` | `{names}` |
-| DELETE | `/{layoutId}/favorites?name=`      | –    | `{names}` |
 
 `LayoutDto = {id, name, mode, categoryOrder: string[], itemOrder: string[], listIds: string[], createdAt}`
 
@@ -197,19 +199,22 @@ Response `{seq, results: [{changeId, status: APPLIED|DUPLICATE|REJECTED, code?}]
 A change conflicts only if what it touches was changed after `baseSeq` **by another user**.
 
 **Pull** `GET ?since=<seq>` (0 = full state):
-`{seq, fullResync, lists: SyncListDto[], listIds, catalog?, layouts?, layoutIds}`
+`{seq, fullResync, lists: SyncListDto[], listIds, catalog?, historyChanges, layouts?, layoutIds}`
 - `SyncListDto = {id, name, createdAt, seq, deleted, items: SyncItemDto[]}` – only changed lists, with
   only their changed items, **including tombstones** (`deleted: true`).
-- `SyncItemDto = ItemDto` without `favorite`, plus `deleted`.
+- `SyncItemDto = ItemDto` plus `deleted`.
 - `listIds` / `layoutIds`: all existing ids – drop local ones not contained.
-- `catalog` only if it changed, `layouts` (all of them) only if one changed.
+- `catalog` (complete, incl. history) only if categories/units changed or history entries were removed /
+  renamed – replace the local catalog. Otherwise `historyChanges` = history entries added or updated since
+  `since` (items added or checked) – merge them by normalized name and update `usage`.
+- `layouts` (all of them) only if one changed.
 - `fullResync: true` → `lists` is the complete state; drop everything local not in it. Happens for
   `since = 0`, `since` older than the tombstone purge horizon (30 days) or `since` > current seq.
 
 **Protocol:** push queued changes with `baseSeq` = seq of the last pull, **then pull with `since = baseSeq`**
 (not the push seq – other users' changes may lie in between). Store the pulled `seq` as the new base.
 
-Not in the pull: spaces/members, favorites, user settings – fetch those separately.
+Not in the pull: spaces/members, user settings – fetch those separately.
 
 ### Live updates (`GET /api/events`)
 
@@ -233,7 +238,7 @@ spaces, since events may have been missed.
 | Invite validity             | 1 h – 30 days |
 | Sync batch                  | 500 changes |
 
-Name normalization (history, favorites, ITEMS layouts): `trim().lowercase()`, whitespace runs → one space.
+Name normalization (history, ITEMS layouts): `trim().lowercase()`, whitespace runs → one space.
 
 ## Error codes
 
@@ -242,6 +247,6 @@ EMAIL_TAKEN INVALID_COLOR INVALID_CREDENTIALS INVALID_EMAIL INVALID_EXPIRY INVAL
 INVALID_ITEM_NAME INVALID_LANGUAGE INVALID_NAME INVALID_ORDER INVALID_TOKEN INVALID_UNIT INVITE_INVALID
 INVITE_NOT_FOUND ITEM_EXISTS ITEM_NOT_FOUND LAYOUT_EXISTS LAYOUT_NOT_FOUND LIST_EXISTS LIST_FULL
 LIST_NOT_FOUND MEMBER_NOT_FOUND OWNER_CANNOT_LEAVE OWNER_ONLY PASSWORD_TOO_LONG PASSWORD_TOO_SHORT
-SESSION_EXPIRED SPACE_NOT_FOUND TOKEN_NOT_FOUND TOO_MANY_CATEGORIES TOO_MANY_FAVORITES TOO_MANY_TOKENS
+SESSION_EXPIRED SPACE_NOT_FOUND TOKEN_NOT_FOUND TOO_MANY_CATEGORIES TOO_MANY_TOKENS
 TOO_MANY_UNITS USER_NOT_FOUND WRONG_PASSWORD INTERNAL_ERROR`, plus framework codes like `UNAUTHORIZED`.
 Sync push rejections additionally use `INVALID_CHANGE`.

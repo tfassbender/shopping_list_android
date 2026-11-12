@@ -37,7 +37,7 @@ final web design rather than a moving target.
 | 3     | Local storage & spaces                    | JSON file store, spaces/members/invites repositories |
 | 4     | Client domain logic                       | Change model, optimistic apply, pull merge, sorter |
 | 5     | Offline sync engine                       | **Lists & items work offline** |
-| 6     | Catalog, layouts, favorites, suggestions  | Categories, units, shop sorting, autocomplete |
+| 6     | Catalog, layouts, history, suggestions    | Categories, units, shop sorting, autocomplete |
 | 7     | Live updates (SSE)                        | Shared lists update without refresh while the app is open |
 | 8     | Integration hardening                     | Tested end-to-end against a local server |
 | later | UI, widget, app links, voice input        | |
@@ -56,7 +56,7 @@ on `../homeautomation`.
 - [x] Versioning as homeautomation: `appVersion` → derived `versionCode`
 - [x] Package skeleton `domain` / `data.remote` / `data.local` / `data.sync` / `data.repo`
 - [x] `AppContainer` (manual DI) created in a custom `Application` class
-- [x] `BuildConfig.API_BASE_URL` per build type (debug `http://10.0.2.2:4720/`)
+- [x] `BuildConfig.API_BASE_URL` per build type (debug `http://10.0.2.2:4723/`)
 - [x] Network security config: cleartext only to `10.0.2.2` / `localhost`, debug only
 - [x] Backup: nothing is backed up or transferred
 - [x] Test setup: JUnit 4, MockWebServer, coroutines-test
@@ -64,7 +64,7 @@ on `../homeautomation`.
 - [ ] Release signing as homeautomation (decide whether the key is committed) – when releasing
 
 Decided while implementing: no runtime server URL override – a real device reaches the local server via
-`adb reverse tcp:4720 tcp:4720` and localhost, so the HTTP exception stays limited to fixed local hosts.
+`adb reverse tcp:4723 tcp:4723` and localhost, so the HTTP exception stays limited to fixed local hosts.
 The release `API_BASE_URL` is a placeholder (`https://shopping-list.invalid/`) until the server is deployed.
 English default strings with a German translation (`values-de`).
 
@@ -85,8 +85,8 @@ Goal: every endpoint of `doc/server_api.md` is callable from Kotlin.
 Decided while implementing:
 - The Quarkus spec has gaps the generator can't handle: endpoints returning a JAX-RS `Response` have an
   empty schema (→ `Any`), `CreatedInviteDto` / `CreatedApiTokenDto` are missing, optional query parameters
-  are marked required. The fetch script **patches** these (and drops the SSE path); server issue #4 asks for
-  `@APIResponse` annotations so the patches can go.
+  are marked required. The fetch script patched these; since server issue #4 was fixed (2026-11-12) it only
+  drops the SSE path.
 - `explicitNulls = false` in the generated serializer: the server leaves out null fields (e.g. `token`
   while email verification is pending) although the spec marks them required, and null request fields
   must be left out (`PATCH` = missing means unchanged; `""` clears).
@@ -173,18 +173,21 @@ Decided while implementing: `AppSync` syncs **all** spaces of the user (not only
 space is available offline. Respecting the `ignoreMergeWarnings` setting is left to the UI (it decides
 whether to show the icon).
 
-## Phase 6 – Catalog, layouts, favorites, suggestions
+## Phase 6 – Catalog, layouts, history, suggestions
 
 Goal: categories, units, shop sorting and autocomplete – available offline for reading.
 
 - [x] Catalog and layouts come with the pull → space file; `refresh()` for explicit loads
 - [x] `CatalogRepository`: categories (add, update, delete, reorder), units – online, answer stored
 - [x] `LayoutRepository`: CRUD, mode, category / item order, connect / disconnect lists – online
-- [x] Favorites per layout cached in the space file; refresh / add / remove online (server issue #3)
+- [x] ~~Favorites per layout~~ – removed on the server (2026-11-12); item history instead (see below)
 - [x] `sortedItems(...)`: sorting for a shop on the device (works offline); last used shop per list
       remembered (DataStore)
 - [x] Shop choices: connected layouts first, then the others
-- [x] Suggestions: online from the server; offline from item names of the local lists (server issue #1)
+- [x] Suggestions: online from the server; offline the cached item history ranked like the server
+      (`rankSuggestions`, server issue #1). The pull brings the complete catalog or `historyChanges`
+      (merged by normalized name, `usage` kept in step)
+- [x] Item history ("items used before"): list, rename, forget – online; copy a shop layout
 - [x] Tests: repositories with MockWebServer, offline sorting from cached data
 
 ## Phase 7 – Live updates (SSE, foreground only)
@@ -208,9 +211,9 @@ connections instead of hanging forever.
 
 Goal: confidence that the app works against the real server.
 
-- [x] `IntegrationTest` (JVM, `http://localhost:4720/` or `-Dshoppinglist.it.baseUrl`, skipped when
+- [x] `IntegrationTest` (JVM, `http://localhost:4723/` or `-Dshoppinglist.it.baseUrl`, skipped when
       unreachable): two users share a list and edit offline (OVERWRITTEN, RESTORED warnings); owner deletes
-      a list a member changed offline (LIST_DELETED); layouts + favorites sort a list; live updates; log out
+      a list a member changed offline (LIST_DELETED); layouts sort a list; live updates; log out
       everywhere invalidates the other device. Test users delete their accounts afterwards.
 - [x] `DeviceSmokeTest` (instrumented, emulator): Keystore encryption round trip; the real `AppContainer`
       registers, syncs a list via `10.0.2.2` and logs out (local data deleted)
@@ -239,15 +242,15 @@ if changes are still queued - the running sync (e.g. started by the login) may h
 | 2 | minSdk                    | 31 (Android 12), targetSdk 36 (Android 16) |
 | 3 | DI                        | Manual `AppContainer` |
 | 4 | Token storage             | Encrypted: `TokenCipher` / `SessionStore` (from homeautomation's `TokenStore`) |
-| 5 | Offline suggestions       | Server delivers the item history (category/unit) to clients – server issue #1; until then local item names |
+| 5 | Offline suggestions       | The pull delivers the item history; the app ranks it like the server (server issue #1, done) |
 | 6 | Background live updates   | None (no Firebase) – the app pulls when opened; SSE only in the foreground |
 | 7 | Local storage             | JSON files per space instead of Room |
-| 8 | API client                | Generated from the server's OpenAPI spec (as homeautomation), spec patched by the fetch script |
+| 8 | API client                | Generated from the server's OpenAPI spec (as homeautomation); the fetch script drops the SSE path |
 
 ## Server issues
 
-Server-side work the app depends on or benefits from:
-1. [#1](https://github.com/tfassbender/shopping_list_server/issues/1) Item history (category/unit) for offline autocomplete (+ catalog seq not bumped on history changes) – needed for complete offline suggestions.
-2. [#2](https://github.com/tfassbender/shopping_list_server/issues/2) Android App Links (`/.well-known/assetlinks.json`) – needed for opening invite/email links in the app.
-3. [#3](https://github.com/tfassbender/shopping_list_server/issues/3) Personal favorites in the sync pull – nice to have (otherwise fetched per layout).
-4. [#4](https://github.com/tfassbender/shopping_list_server/issues/4) OpenAPI: response schemas of endpoints returning a JAX-RS `Response` – lets the app drop its spec patches.
+Server-side work the app depends on or benefits from (all four fixed on the server on 2026-11-11):
+1. [#1](https://github.com/tfassbender/shopping_list_server/issues/1) Item history for offline autocomplete – done: `CatalogDto.history` + `PullResponse.historyChanges`, used by the app.
+2. [#2](https://github.com/tfassbender/shopping_list_server/issues/2) Android App Links (`/.well-known/assetlinks.json`) – served; the app side is still open (see "Later").
+3. [#3](https://github.com/tfassbender/shopping_list_server/issues/3) Personal favorites in the sync pull – obsolete: favorites were removed on 2026-11-12.
+4. [#4](https://github.com/tfassbender/shopping_list_server/issues/4) OpenAPI response schemas – done; the fetch script's patches are gone.

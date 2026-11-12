@@ -24,8 +24,8 @@ Requires JDK 17 or newer and the Android SDK (minSdk 31 / Android 12).
 ## Local server
 
 The debug build talks to the local dev server: start it in the server repo with
-`./gradlew :backend:quarkusDev` (port 4720). The emulator reaches it at `http://10.0.2.2:4720/`; on a
-real device run `adb reverse tcp:4720 tcp:4720` first.
+`./gradlew :backend:quarkusDev` (port 4723). The emulator reaches it at `http://10.0.2.2:4723/`; on a
+real device run `adb reverse tcp:4723 tcp:4723` first.
 
 The API client is generated from [doc/openapi.json](doc/openapi.json). After API changes on the server,
 refresh it with `python .claude/skills/update-openapi/fetch_openapi.py`.

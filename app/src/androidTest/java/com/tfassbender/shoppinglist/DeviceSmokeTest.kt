@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit
 
 /**
  * What only a device can check: the Keystore encryption and the app's real wiring (AppContainer with
- * DataStore, files, WorkManager) against the local dev server at 10.0.2.2:4720 (skipped if not running).
+ * DataStore, files, WorkManager) against the local dev server at 10.0.2.2:4723 (skipped if not running).
  * Run: `./gradlew connectedDebugAndroidTest` with an emulator.
  */
 @RunWith(AndroidJUnit4::class)

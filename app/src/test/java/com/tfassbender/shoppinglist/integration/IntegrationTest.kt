@@ -60,7 +60,7 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 /**
- * End-to-end tests of the app's data layer against a real server (default `http://localhost:4720/`,
+ * End-to-end tests of the app's data layer against a real server (default `http://localhost:4723/`,
  * override with `-Dshoppinglist.it.baseUrl=...`). Skipped when no server is reachable. The server must
  * run with email verification disabled (dev mode: `./gradlew :backend:quarkusDev` in the server repo).
  *
@@ -202,7 +202,7 @@ class IntegrationTest {
     }
 
     @Test
-    fun `shop layouts and favorites sort a list`() = runBlocking {
+    fun `shop layouts sort a list`() = runBlocking {
         val anna = register("Anna")
         val space = anna.spaces.create("IT Shops").value()
         val listId = anna.lists.createList(space.id, "Groceries").getOrThrow()
@@ -218,10 +218,9 @@ class IntegrationTest {
         val shop = anna.layouts.create(space.id, "Reverse", LayoutMode.CATEGORIES).value()
         anna.layouts.setCategoryOrder(space.id, shop.id, categories.map { it.id }.reversed()).value()
         anna.layouts.connectList(space.id, shop.id, listId).value()
-        anna.layouts.addFavorite(space.id, shop.id, "C last item").value()
 
         val sorted = anna.layouts.sortedItems(space.id, listId, shop.id, checkedToEnd = false).first()
-        assertEquals(listOf("C last item", "B last item", "A first item"), sorted.map { it.item.name })
+        assertEquals(listOf("B last item", "C last item", "A first item"), sorted.map { it.name })
         assertEquals(listOf(shop.id), anna.layouts.shopChoices(space.id, listId).first().map { it.id }.take(1))
         assertTrue(anna.catalog.suggestions(space.id, "B l").any { it.name == "B last item" })
     }
@@ -270,7 +269,7 @@ class IntegrationTest {
     }
 
     private companion object {
-        val BASE_URL: String = System.getProperty("shoppinglist.it.baseUrl") ?: "http://localhost:4720/"
+        val BASE_URL: String = System.getProperty("shoppinglist.it.baseUrl") ?: "http://localhost:4723/"
         const val PASSWORD = "integration-secret"
     }
 }

@@ -123,9 +123,11 @@ data class PullResult(
     val lists: List<SyncList>,
     /** Ids of all existing lists. */
     val listIds: List<String>,
-    /** Only if changed. */
+    /** The complete catalog incl. history, only if categories/units changed or history entries were removed/renamed. */
     val catalog: Catalog?,
     /** All layouts, only if one changed. */
     val layouts: List<ShopLayout>?,
     val layoutIds: List<String>,
+    /** History entries added or updated since `since` (empty if [catalog] is sent) - merged into the local catalog. */
+    val historyChanges: List<HistoryEntry> = emptyList(),
 )
