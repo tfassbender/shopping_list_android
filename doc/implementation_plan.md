@@ -5,7 +5,7 @@ Based on the server's `doc/features.md` (what), `doc/tech_stack.md` here (how) a
 here (the REST contract). Update the checkboxes and the status as work completes.
 
 **Status:** Phases 0–9 done – the app has its UI (Phase 9, following the finished web app). Open: release
-signing, manual offline checklist on a device, App Links, widget.
+signing, manual offline checklist on a device, App Links.
 
 ## Scope of this plan
 
@@ -41,7 +41,7 @@ final web design rather than a moving target.
 | 7     | Live updates (SSE)                        | Shared lists update without refresh while the app is open |
 | 8     | Integration hardening                     | Tested end-to-end against a local server |
 | 9     | UI (Compose)                              | All pages of the web app, same look and texts |
-| later | Widget, app links, release                | |
+| later | App links, release                        | |
 
 ---
 
@@ -262,13 +262,13 @@ Decided while implementing:
 - No navigation library (as homeautomation); a back-stack entry carries a UUID that keys its saved state
   and ViewModel store, so two lists on the stack don't share state.
 - Dialogs are bottom sheets (the web's dialogs are bottom sheets on phones too).
-- Joining a space works by pasting the invite link (⋮ on "Spaces & sharing") until App Links exist.
+- Joining a space works by pasting the invite link (⋮ on "Spaces & sharing") – kept until App Links exist.
 - Debug builds take `-PdevApiBaseUrl=…` (local hosts only) – e.g. a real device via `adb reverse`.
 - The bundle keeps all languages (`enableSplit = false`): the language is switched in the app.
 
 ## Later (not planned in detail yet)
 
-- [ ] Home screen widget (Glance)
+- ~~Home screen widget~~ – not needed (decided 2026-11-12)
 - [ ] Android App Links for invite / verification / reset links (server issue #2: `assetlinks.json`)
 - [ ] Release: signing, production server URL, distribution
 
