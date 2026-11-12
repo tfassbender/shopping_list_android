@@ -45,16 +45,46 @@ class SpaceRepositoryTest {
         """{"id":"$id","name":"Space $id","myRole":"$role","memberCount":1,"createdAt":"$created"}"""
 
     @Test
-    fun `refresh caches spaces sorted by creation and reports vanished ones`() = runTest {
+    fun `refresh caches spaces in the server's order and reports vanished ones`() = runTest {
         server.enqueue(jsonResponse("[${space("s2")},${space("s1")}]"))
         repo.refresh()
-        assertEquals(listOf("s1", "s2"), repo.cached().map { it.id })
+        assertEquals(listOf("s2", "s1"), repo.cached().map { it.id })
 
         server.enqueue(jsonResponse("[${space("s2")}]"))
         repo.refresh()
 
         assertEquals(listOf("s2"), repo.cached().map { it.id })
         assertEquals(listOf("s1"), removed)
+    }
+
+    @Test
+    fun `reorder saves the order and restores the previous one on failure`() = runTest {
+        server.enqueue(jsonResponse("[${space("s1")},${space("s2")},${space("s3")}]"))
+        repo.refresh()
+        server.takeRequest()
+
+        server.enqueue(jsonResponse("[${space("s3")},${space("s1")},${space("s2")}]"))
+        repo.reorder(listOf("s3", "s1", "s2"))
+        val request = server.takeRequest()
+        assertEquals("PUT /api/spaces/order", "${request.method} ${request.path}")
+        assertTrue(request.body.readUtf8().contains("\"spaceIds\":[\"s3\",\"s1\",\"s2\"]"))
+        assertEquals(listOf("s3", "s1", "s2"), repo.cached().map { it.id })
+
+        server.enqueue(jsonResponse("""{"code":"X","message":"x"}""", 500))
+        assertTrue(repo.reorder(listOf("s2", "s3", "s1")) is ApiResult.Failure)
+        assertEquals(listOf("s3", "s1", "s2"), repo.cached().map { it.id })
+    }
+
+    @Test
+    fun `create keeps the order and puts a new space last`() = runTest {
+        server.enqueue(jsonResponse("[${space("s2")},${space("s1")}]"))
+        repo.refresh()
+        server.enqueue(jsonResponse(space("s3"), 201))
+        repo.create("New")
+        server.enqueue(jsonResponse(space("s2", role = "MEMBER")))
+        repo.transferOwnership("s2", "u2")
+
+        assertEquals(listOf("s2", "s1", "s3"), repo.cached().map { it.id })
     }
 
     @Test

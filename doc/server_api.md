@@ -87,7 +87,8 @@ optional query parameters; `.claude/skills/update-openapi/fetch_openapi.py` only
 ### Spaces (`/api/spaces`)
 | Method | Path                                  | Body                    | Who    | Response |
 |--------|---------------------------------------|-------------------------|--------|----------|
-| GET    | `/`                                   | –                       | member | `SpaceDto[]` |
+| GET    | `/`                                   | –                       | member | `SpaceDto[]` (in my own order) |
+| PUT    | `/order`                              | `{spaceIds}`            | any    | `SpaceDto[]` in the new order (personal; unknown ids ignored, unsorted spaces last, by name) |
 | POST   | `/`                                   | `{name}`                | any    | 201 `SpaceDto` (creator = owner) |
 | GET    | `/{spaceId}`                          | –                       | member | `SpaceDto` |
 | PUT    | `/{spaceId}/name`                     | `{name}`                | owner  | `SpaceDto` |

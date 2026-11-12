@@ -196,7 +196,8 @@ fun ListScreen(spaceId: String, listId: String) {
             title = stringResource(R.string.list_deleteTitle, list.name),
             text = stringResource(R.string.list_deleteText),
             confirmLabel = stringResource(R.string.list_delete),
-            onConfirm = { vm.deleteList(onDeleted = navigator::toStart) },
+            // Back to the page that opened the list (start or space page); back must not lead to the deleted list.
+            onConfirm = { vm.deleteList(onDeleted = { if (navigator.canGoBack) navigator.back() else navigator.toStart() }) },
             onDismiss = { sheet = null },
         )
         null -> Unit

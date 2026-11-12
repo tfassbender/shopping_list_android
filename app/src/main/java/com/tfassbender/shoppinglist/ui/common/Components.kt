@@ -304,7 +304,8 @@ fun AppSwitch(checked: Boolean, onChange: (Boolean) -> Unit, enabled: Boolean = 
 
 /**
  * One full-width row of a page (settings, members, spaces): a main text with an optional hint below, and
- * something at the end. With [onClick] the whole row is a button.
+ * something at the end. With [onClick] the whole row is a button. [divider] = false inside a
+ * [SortableColumn], which draws the lines between its rows itself.
  */
 @Composable
 fun ListRow(
@@ -316,6 +317,7 @@ fun ListRow(
     onClick: (() -> Unit)? = null,
     chevron: Boolean = false,
     enabled: Boolean = true,
+    divider: Boolean = true,
 ) {
     val colors = AppTheme.colors
     Column(modifier) {
@@ -336,7 +338,7 @@ fun ListRow(
             end?.invoke()
             if (chevron) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = colors.muted)
         }
-        HorizontalDivider(color = colors.line)
+        if (divider) HorizontalDivider(color = colors.line)
     }
 }
 

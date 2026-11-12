@@ -264,6 +264,7 @@
     <string name="shop_noShops">Noch keine Geschäfte. Ein Geschäft sortiert die Liste in der Reihenfolge deines Wegs.</string>
     <string name="shop_manage">Geschäfte verwalten</string>
     <string name="spaces_explanation">Ein Bereich enthält Listen, Kategorien und Geschäfte. Alle im Bereich sehen und bearbeiten dieselben Listen.</string>
+    <string name="spaces_orderHint">Ziehe ⠿, um die Reihenfolge deiner Bereiche zu ändern - die Startseite zeigt sie auch so.</string>
     <string name="spaces_new">Neuer Bereich</string>
     <string name="spaces_summary">%1$s · %2$s</string>
     <string name="spaces_lists_one">1 Liste</string>
@@ -271,6 +272,7 @@
     <string name="spaces_members_one">1 Mitglied</string>
     <string name="spaces_members_other">%1$s Mitglieder</string>
     <string name="space_usedByLists">Für alle Listen in diesem Bereich</string>
+    <string name="space_lists">Listen</string>
     <string name="space_categoryCount">%1$s Kategorien</string>
     <string name="space_onlyOwnerInvites">Nur der Besitzer kann Leute einladen.</string>
     <string name="space_deleteTitle">\"%1$s\" löschen?</string>

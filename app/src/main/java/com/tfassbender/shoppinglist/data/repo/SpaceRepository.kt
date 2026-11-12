@@ -3,6 +3,7 @@ package com.tfassbender.shoppinglist.data.repo
 import com.tfassbender.shoppinglist.api.apis.SpacesApi
 import com.tfassbender.shoppinglist.api.models.CreateInviteRequest
 import com.tfassbender.shoppinglist.api.models.NameRequest
+import com.tfassbender.shoppinglist.api.models.SpaceOrderRequest
 import com.tfassbender.shoppinglist.api.models.TransferOwnershipRequest
 import com.tfassbender.shoppinglist.data.local.JsonFile
 import com.tfassbender.shoppinglist.data.remote.ApiResult
@@ -37,7 +38,7 @@ class SpaceRepository(
 ) {
     private val removedListeners = mutableListOf<SpaceRemovedListener>()
 
-    /** My spaces (cached), sorted by creation time. */
+    /** My spaces (cached), in my own order (set with [reorder]; the server returns the list in it). */
     val spaces: Flow<List<Space>> = cache.flow
 
     fun addSpaceRemovedListener(listener: SpaceRemovedListener) {
@@ -48,11 +49,24 @@ class SpaceRepository(
 
     /** Reloads the space list; local data of spaces I'm no longer member of is dropped. */
     suspend fun refresh(): ApiResult<List<Space>> =
-        apiCall { api.listSpaces() }.map { dtos -> dtos.map { it.toDomain() }.sortedBy { it.createdAt } }.onSuccess { fresh ->
+        apiCall { api.listSpaces() }.map { dtos -> dtos.map { it.toDomain() } }.onSuccess { fresh ->
             val gone = cache.get().map { it.id } - fresh.map { it.id }.toSet()
             cache.set(fresh)
             gone.forEach { notifyRemoved(it) }
         }
+
+    /**
+     * Saves my own order of the spaces (personal, also used by the web app). The new order is shown at
+     * once; on failure the previous order comes back.
+     */
+    suspend fun reorder(spaceIds: List<String>): ApiResult<List<Space>> {
+        val before = cache.get()
+        val byId = before.associateBy { it.id }
+        cache.set(spaceIds.mapNotNull { byId[it] } + before.filterNot { it.id in spaceIds })
+        return apiCall { api.reorderSpaces(SpaceOrderRequest(spaceIds)) }.map { dtos -> dtos.map { it.toDomain() } }
+            .onSuccess { cache.set(it) }
+            .also { if (it is ApiResult.Failure) cache.set(before) }
+    }
 
     /** The creator becomes owner; new spaces get default categories in the user's language. */
     suspend fun create(name: String): ApiResult<Space> =
@@ -106,7 +120,10 @@ class SpaceRepository(
     }
 
     private suspend fun upsert(space: Space) {
-        cache.update { spaces -> (spaces.filterNot { it.id == space.id } + space).sortedBy { it.createdAt } }
+        // Keeps the position of a known space; a new one comes last (the server puts unsorted spaces last too).
+        cache.update { spaces ->
+            if (spaces.any { it.id == space.id }) spaces.map { if (it.id == space.id) space else it } else spaces + space
+        }
     }
 
     private suspend fun remove(spaceId: String) {

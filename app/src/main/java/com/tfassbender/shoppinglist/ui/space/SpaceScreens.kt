@@ -78,9 +78,11 @@ import com.tfassbender.shoppinglist.ui.common.SectionTitle
 import com.tfassbender.shoppinglist.ui.common.Segmented
 import com.tfassbender.shoppinglist.ui.common.SheetActions
 import com.tfassbender.shoppinglist.ui.common.SheetOption
+import com.tfassbender.shoppinglist.ui.common.SortableColumn
 import com.tfassbender.shoppinglist.ui.common.pageViewModel
 import com.tfassbender.shoppinglist.ui.common.stateIn
 import com.tfassbender.shoppinglist.ui.home.listsOfSpaces
+import com.tfassbender.shoppinglist.ui.home.spaceLists
 import com.tfassbender.shoppinglist.ui.navigation.LocalNavigator
 import com.tfassbender.shoppinglist.ui.navigation.Screen
 import com.tfassbender.shoppinglist.ui.theme.AppTheme
@@ -104,13 +106,19 @@ class SpacesViewModel(private val container: AppContainer) : ActionViewModel() {
         viewModelScope.launch { container.spaces.refresh() }
     }
 
+    /** Shows the new order at once, then saves it; on failure the previous order comes back. */
+    fun reorder(spaceIds: List<String>) = act({ container.spaces.reorder(spaceIds) })
+
     fun create(name: String, onCreated: (Space) -> Unit) = act({ container.spaces.create(name) }) { space ->
         onCreated(space)
         viewModelScope.launch { container.lists.open(space.id) }
     }
 }
 
-/** One row per space; + creates a space; ⋮ → join a space with an invite link (the app has no app links yet). */
+/**
+ * One row per space; + creates a space; ⋮ → join a space with an invite link (the app has no app links yet).
+ * The ⠿ handles change the order of the spaces (personal, saved on the server), which the start page uses too.
+ */
 @Composable
 fun SpacesScreen() {
     val vm = pageViewModel { SpacesViewModel(it) }
@@ -129,7 +137,8 @@ fun SpacesScreen() {
     ) { padding ->
         PageContent(padding) {
             Hint(stringResource(R.string.spaces_explanation))
-            spaces.forEach { space ->
+            ErrorText(if (creating) null else error, Modifier.padding(top = 8.dp))
+            val row: @Composable (Space, Boolean) -> Unit = { space, plain ->
                 val listCount = lists[space.id]?.size ?: 0
                 val listsText = if (listCount == 1) stringResource(R.string.spaces_lists_one) else stringResource(R.string.spaces_lists_other, listCount.toString())
                 val membersText = if (space.memberCount == 1) stringResource(R.string.spaces_members_one) else stringResource(R.string.spaces_members_other, space.memberCount.toString())
@@ -140,7 +149,25 @@ fun SpacesScreen() {
                     start = { Avatar(space.name) },
                     onClick = { navigator.push(Screen.SpacePage(space.id)) },
                     chevron = true,
+                    divider = !plain,
                 )
+            }
+            // Reordering is saved on the server, so it needs a connection (and at least two spaces to make sense).
+            if (online && spaces.size > 1) {
+                Text(
+                    stringResource(R.string.spaces_orderHint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AppTheme.colors.muted,
+                    modifier = Modifier.padding(top = 12.dp, bottom = 8.dp),
+                )
+                SortableColumn(
+                    items = spaces,
+                    key = { it.id },
+                    label = { it.name },
+                    onReorder = vm::reorder,
+                ) { space -> row(space, true) }
+            } else {
+                spaces.forEach { space -> row(space, false) }
             }
         }
     }
@@ -198,6 +225,8 @@ class SpaceViewModel(private val container: AppContainer, val spaceId: String) :
     val catalog = container.catalog.catalog(spaceId).stateIn(this, null)
     val layouts = container.layouts.layouts(spaceId).stateIn(this, emptyList())
     val history = container.catalog.history(spaceId).stateIn(this, emptyList())
+    /** null = nothing on this device yet. Lists come from the local store, so they open offline too. */
+    val lists = container.spaceLists(spaceId).stateIn(this, null)
     val online = container.online.stateIn(this, true)
 
     private val membersState = MutableStateFlow<List<Member>?>(null)
@@ -250,8 +279,9 @@ class SpaceViewModel(private val container: AppContainer, val spaceId: String) :
 private data class Confirm(val title: String, val text: String, val confirmLabel: String, val onConfirm: () -> Unit)
 
 /**
- * A space: its members, open invite links (owner) and what all its lists share (categories, items used
- * before, shops). Rename and delete (owner) or leave (member) are in the ⋮ menu. Needs a connection.
+ * A space: its members, open invite links (owner), what all its lists share (categories, items used
+ * before, shops) and its lists. Rename and delete (owner) or leave (member) are in the ⋮ menu. Everything
+ * but the lists needs a connection; a list opened here leads back here.
  */
 @Composable
 fun SpaceScreen(spaceId: String) {
@@ -264,6 +294,7 @@ fun SpaceScreen(spaceId: String) {
     val catalog by vm.catalog.collectAsStateWithLifecycle()
     val layouts by vm.layouts.collectAsStateWithLifecycle()
     val history by vm.history.collectAsStateWithLifecycle()
+    val lists by vm.lists.collectAsStateWithLifecycle()
     val online by vm.online.collectAsStateWithLifecycle()
     val error by vm.error.collectAsStateWithLifecycle()
     val loadError by vm.loadError.collectAsStateWithLifecycle()
@@ -352,6 +383,22 @@ fun SpaceScreen(spaceId: String) {
                     onClick = { navigator.push(Screen.Layouts(spaceId)) },
                     chevron = true,
                 )
+            }
+            // Outside OnlineOnly: the lists come from the offline store and open without a connection too.
+            SectionTitle(stringResource(R.string.space_lists))
+            when (val all = lists) {
+                null -> if (online) Loading() else Hint(stringResource(R.string.start_notLoadedOffline))
+                else -> {
+                    if (all.isEmpty()) Hint(stringResource(R.string.start_noLists))
+                    all.forEach { list ->
+                        ListRow(
+                            list.name,
+                            hint = stringResource(R.string.lists_openCount, list.openCount.toString()),
+                            onClick = { navigator.push(Screen.ListPage(spaceId, list.id)) },
+                            chevron = true,
+                        )
+                    }
+                }
             }
         }
     }

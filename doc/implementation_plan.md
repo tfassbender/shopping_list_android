@@ -232,7 +232,7 @@ colors; the web app was finished first so the app follows a stable design.
 
 - [x] Theme: the web's color tokens (light blue bar, navy ink, raised fields), light/dark from the user
       setting, 17sp base text; status bar icons dark on the bar in both themes
-- [x] Texts generated from the web's i18n (`scripts/sync_strings.py`, en + de, 359 keys); language from
+- [x] Texts generated from the web's i18n (`scripts/sync_strings.py`, en + de); language from
       the user setting, before login the device language or the EN/DE toggle; error codes → messages
 - [x] Navigation: own back stack (`Screen`, `Navigator`, `NavHost`), survives process death; ViewModels
       per stack entry; title tap → start page; system back
@@ -241,12 +241,15 @@ colors; the web app was finished first so the app follows a stable design.
       drag-to-reorder list (accessibility: move up/down), color picker (palette, hue, hex)
 - [x] Login, register (verification pending → "check mail"), forgot password, resend verification;
       "session expired" notice after a 401
-- [x] Start page: lists of all spaces with open count and "last used", new list (space chips), first space
+- [x] Start page: lists of all spaces (in the user's order) with open count and "last used", + for a new
+      list (space chips), spaces and settings as bar icons, first space
 - [x] List page: tap to check, pencil → item editor (only changed fields), category headers on/off (color
       bars), "checked to the end" button, shop selection (connected first, remembered), rename, remove
       checked, delete (owner); add sheet with "Add another"/"Done", suggestions (online, offline from the
       history), automatic category, voice input (`RecognizerIntent`); space gone / list not found states
-- [x] Spaces & sharing, space page (members, make owner, remove, leave, rename, delete), invite sheet
+- [x] Spaces & sharing (personal order by drag and drop, `PUT /api/spaces/order`), space page (members,
+      make owner, remove, leave, rename, delete, its lists – also offline; a list opened there leads back
+      there), invite sheet
       (validity, copy, share), open invites (revoke), invite page; joining by pasted link (no App Links yet)
 - [x] Categories & units (reorder, colors, rename on blur, delete), items used before (search, rename,
       remove), shops (list, editor: rename, mode, category / item order, import items of the connected

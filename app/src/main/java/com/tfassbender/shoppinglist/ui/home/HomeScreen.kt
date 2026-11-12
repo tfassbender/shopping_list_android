@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.HorizontalDivider
@@ -54,12 +53,13 @@ import com.tfassbender.shoppinglist.domain.Space
 import com.tfassbender.shoppinglist.ui.common.AppButton
 import com.tfassbender.shoppinglist.ui.common.AppSheet
 import com.tfassbender.shoppinglist.ui.common.AppTextField
+import com.tfassbender.shoppinglist.ui.common.BarIconButton
 import com.tfassbender.shoppinglist.ui.common.ButtonVariant
 import com.tfassbender.shoppinglist.ui.common.ErrorCodeText
+import com.tfassbender.shoppinglist.ui.common.Fab
 import com.tfassbender.shoppinglist.ui.common.Hint
 import com.tfassbender.shoppinglist.ui.common.LoadError
 import com.tfassbender.shoppinglist.ui.common.Loading
-import com.tfassbender.shoppinglist.ui.common.MenuEntry
 import com.tfassbender.shoppinglist.ui.common.NameSheet
 import com.tfassbender.shoppinglist.ui.common.Page
 import com.tfassbender.shoppinglist.ui.common.PageContent
@@ -146,8 +146,9 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
 }
 
 /**
- * Start page: all lists of all spaces - opening a list is one tap. Everything rarely needed (new list,
- * spaces, settings) is in the ⋮ menu. Works offline (lists come from the local store).
+ * Start page: all lists of all spaces (in the user's order of spaces) - opening a list is one tap. + at
+ * the bottom creates a list; spaces and settings are icons in the bar. Works offline (lists come from
+ * the local store).
  */
 @Composable
 fun HomeScreen() {
@@ -170,11 +171,12 @@ fun HomeScreen() {
 
     Page(
         title = stringResource(R.string.start_title),
-        menu = listOf(
-            MenuEntry(stringResource(R.string.newList_title), Icons.AutoMirrored.Filled.List, enabled = !spaces.isNullOrEmpty()) { openNewList(null) },
-            MenuEntry(stringResource(R.string.spaces_title), Icons.Filled.Group) { navigator.push(Screen.Spaces) },
-            MenuEntry(stringResource(R.string.nav_settings), Icons.Filled.Settings, divider = true) { navigator.push(Screen.Settings) },
-        ),
+        actions = {
+            BarIconButton(Icons.Filled.Group, stringResource(R.string.spaces_title), { navigator.push(Screen.Spaces) })
+            BarIconButton(Icons.Filled.Settings, stringResource(R.string.nav_settings), { navigator.push(Screen.Settings) })
+        },
+        // Without a space there is nowhere to put a list: the page asks to create a space instead.
+        fab = { if (!spaces.isNullOrEmpty()) Fab(stringResource(R.string.newList_title), { openNewList(null) }) },
     ) { padding ->
         PageContent(padding) {
             val all = spaces
@@ -261,14 +263,14 @@ private fun SpaceLists(
                     Row(
                         Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 64.dp)
+                            .heightIn(min = 48.dp)
                             .clickable { onOpen(list) }
-                            .padding(horizontal = 8.dp, vertical = 12.dp),
+                            .padding(horizontal = 8.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
                             buildAnnotatedString {
-                                withStyle(SpanStyle(fontSize = 21.sp, fontWeight = FontWeight.SemiBold)) { append(list.name) }
+                                withStyle(SpanStyle(fontSize = 18.sp, fontWeight = FontWeight.SemiBold)) { append(list.name) }
                                 if (showLastUsed) {
                                     withStyle(SpanStyle(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = colors.accent)) {
                                         append(" · " + stringResource(R.string.start_lastUsed))
@@ -281,16 +283,17 @@ private fun SpaceLists(
                         Box(
                             Modifier
                                 .padding(start = 12.dp)
-                                .heightIn(min = 32.dp)
-                                .widthIn(min = 32.dp)
+                                .heightIn(min = 28.dp)
+                                .widthIn(min = 28.dp)
                                 .clip(CircleShape)
                                 .background(colors.raised)
                                 .semantics { contentDescription = countLabel }
-                                .padding(horizontal = 10.dp),
+                                .padding(horizontal = 8.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
                                 if (open > 0) open.toString() else "✓",
+                                fontSize = 14.sp,
                                 fontWeight = if (open > 0) FontWeight.SemiBold else FontWeight.Normal,
                                 color = if (open > 0) colors.fg else colors.muted,
                             )

@@ -1022,6 +1022,20 @@
           }
         }
       },
+      "SpaceOrderRequest": {
+        "type": "object",
+        "required": [
+          "spaceIds"
+        ],
+        "properties": {
+          "spaceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "SuggestionDto": {
         "type": "object",
         "required": [
@@ -1875,6 +1889,56 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SpaceDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not Authorized"
+          },
+          "403": {
+            "description": "Not Allowed"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": [
+              "user"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/spaces/order": {
+      "put": {
+        "summary": "Set the current user's own order of their spaces (used by the space list); returns the spaces in the new order",
+        "operationId": "reorderSpaces",
+        "tags": [
+          "Spaces"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceOrderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SpaceDto"
+                  }
                 }
               }
             }
