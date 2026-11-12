@@ -122,8 +122,8 @@ Mirrors `frontend/src/offline/syncEngine.ts` of the server repo:
 ## Server URL
 
 The server is open source, so the app talks to a configurable server:
-- `BuildConfig.API_BASE_URL` per build type is the default (debug: `http://10.0.2.2:4723/`, release: the
-  production URL once known).
+- `BuildConfig.API_BASE_URL` per build type is the default (debug: `http://10.0.2.2:4723/`, release:
+  `https://shopping-list.tobias-fassbender.com/`).
 - The user can enter another address (settings, login page): stored per device in `ServerConfig`, checked
   with `GET /api/health` before it's used; changing it logs out (session and local data belong to one
   server). The API clients are built for `SERVER_PLACEHOLDER`; `ServerRewriteInterceptor` sends every

@@ -59,8 +59,8 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Production server - not deployed yet. Must be https:// (see CLAUDE.md, "Security").
-        buildConfigField("String", "API_BASE_URL", "\"https://shopping-list.invalid/\"")
+        // Default server (the user can choose another one in the app). Must be https:// (see CLAUDE.md, "Security").
+        buildConfigField("String", "API_BASE_URL", "\"https://shopping-list.tobias-fassbender.com/\"")
     }
 
     buildTypes {

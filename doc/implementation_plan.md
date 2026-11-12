@@ -66,7 +66,8 @@ on `../homeautomation`.
 
 Decided while implementing: no runtime server URL override – a real device reaches the local server via
 `adb reverse tcp:4723 tcp:4723` and localhost, so the HTTP exception stays limited to fixed local hosts.
-The release `API_BASE_URL` is a placeholder (`https://shopping-list.invalid/`) until the server is deployed.
+The release `API_BASE_URL` was a placeholder until the server was deployed; since 2026-11-12 it is
+`https://shopping-list.tobias-fassbender.com/` (the default server, see Phase 9).
 English default strings with a German translation (`values-de`).
 
 ## Phase 1 – API client
@@ -276,7 +277,11 @@ Decided while implementing:
 
 - ~~Home screen widget~~ – not needed (decided 2026-11-12)
 - [ ] Android App Links for invite / verification / reset links (server issue #2: `assetlinks.json`)
-- [ ] Release: signing, production server URL, distribution
+- [x] Production server URL as default (`https://shopping-list.tobias-fassbender.com/`, spec checked against it
+      2026-11-12: identical apart from the version)
+- [x] Minified release build runs (R8 keep rule for WorkManager's Room database in `proguard-rules.pro`;
+      checked on the emulator against the production server)
+- [ ] Release: signing, distribution
 
 ## Decisions
 

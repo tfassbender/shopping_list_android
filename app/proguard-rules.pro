@@ -1,21 +1,10 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# R8 rules for the release build (minified). Libraries bring their own consumer rules; only what they miss
+# is kept here. Check every change with a release build on a device - debug builds aren't minified.
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# WorkManager's internal Room database is created by reflection (no-arg constructor of the generated
+# *_Impl). work-runtime 2.10 with AGP 9's R8 strips that constructor -> crash at app start.
+-keep class * extends androidx.room.RoomDatabase { <init>(); }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
-
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Readable stack traces from user reports (map them with build/outputs/mapping/release/mapping.txt).
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
