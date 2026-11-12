@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -36,10 +38,19 @@ openApiGenerate {
 // --- Version -----------------------------------------------------------------------------------
 // The only place to change for a release. versionCode is derived from it and must grow with every
 // update: MAJOR * 10000 + MINOR * 100 + PATCH (0.1.0 -> 100, 0.1.1 -> 101).
-val appVersion = "0.1.0"
+val appVersion = "1.0.0"
 val appVersionCode = appVersion.split(".").map(String::toInt).let { (major, minor, patch) ->
     require(minor < 100 && patch < 100) { "minor and patch must be < 100" }
     major * 10_000 + minor * 100 + patch
+}
+
+// --- Release signing -----------------------------------------------------------------------------
+// The key lives in signing/ (gitignored - public repo; backed up separately, see doc/releases.md). Every
+// release MUST be signed with it, otherwise Android refuses the update. Without signing/ (another machine)
+// the release build is simply unsigned.
+val releaseSigningFile = rootProject.file("signing/keystore.properties")
+val releaseSigning = releaseSigningFile.takeIf { it.exists() }?.let { file ->
+    Properties().apply { file.inputStream().use { load(it) } }
 }
 
 android {
@@ -63,6 +74,17 @@ android {
         buildConfigField("String", "API_BASE_URL", "\"https://shopping-list.tobias-fassbender.com/\"")
     }
 
+    signingConfigs {
+        if (releaseSigning != null) {
+            create("release") {
+                storeFile = rootProject.file(releaseSigning.getProperty("storeFile"))
+                storePassword = releaseSigning.getProperty("storePassword")
+                keyAlias = releaseSigning.getProperty("keyAlias")
+                keyPassword = releaseSigning.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             // Separate app next to the real one: own ID, own name, own storage.
@@ -82,7 +104,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Release signing: decided when the app is released (see doc/implementation_plan.md).
+            if (releaseSigning != null) signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {

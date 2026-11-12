@@ -62,7 +62,7 @@ on `../homeautomation`.
 - [x] Backup: nothing is backed up or transferred
 - [x] Test setup: JUnit 4, MockWebServer, coroutines-test
 - [x] `.gitignore`, `.gitattributes`, `CLAUDE.md` with build/test commands
-- [ ] Release signing as homeautomation (decide whether the key is committed) – when releasing
+- [x] Release signing: key in `signing/`, **not** committed (public repo) – see `doc/releases.md`
 
 Decided while implementing: no runtime server URL override – a real device reaches the local server via
 `adb reverse tcp:4723 tcp:4723` and localhost, so the HTTP exception stays limited to fixed local hosts.
@@ -281,7 +281,8 @@ Decided while implementing:
       2026-11-12: identical apart from the version)
 - [x] Minified release build runs (R8 keep rule for WorkManager's Room database in `proguard-rules.pro`;
       checked on the emulator against the production server)
-- [ ] Release: signing, distribution
+- [x] Release signing (`doc/releases.md`), version 1.0.0; distributed as APK (no Play Store for now)
+- ~~App Links~~ postponed (decided 2026-11-12) – invite links open in the browser / "join by link" in the app
 
 ## Decisions
 

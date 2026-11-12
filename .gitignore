@@ -22,9 +22,8 @@ local.properties
 keystore.properties
 *.keystore
 *.jks
-# ...except the app's release key: committed on purpose (private repo), see doc/releases.md
-!signing/release.jks
-!signing/keystore.properties
+# Release key + passwords: never committed (public repo), see doc/releases.md
+signing/
 
 # Android Studio / IntelliJ
 .idea/

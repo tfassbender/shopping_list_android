@@ -26,6 +26,7 @@ API client). Look there before inventing something new.
 ./gradlew assembleDebug        # build (also generates the API client)
 ./gradlew testDebugUnitTest    # unit tests (+ integration tests if a server runs on localhost:4723)
 ./gradlew lintDebug
+./gradlew assembleRelease      # signed release APK (needs signing/, see doc/releases.md)
 ./gradlew installDebug         # install the debug app (…shoppinglist.debug) on emulator / device
 ./gradlew connectedDebugAndroidTest  # device tests (emulator; uses the local server via 10.0.2.2 if running)
 ```
