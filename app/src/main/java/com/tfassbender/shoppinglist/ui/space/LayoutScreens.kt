@@ -336,6 +336,7 @@ private fun ModeChoice(mode: LayoutMode, enabled: Boolean, onChange: (LayoutMode
                     Text(
                         stringResource(if (option == LayoutMode.CATEGORIES) R.string.layouts_modeHint_CATEGORIES else R.string.layouts_modeHint_ITEMS),
                         fontSize = 13.sp,
+                        lineHeight = 17.sp,
                         color = AppTheme.colors.muted,
                     )
                 }
