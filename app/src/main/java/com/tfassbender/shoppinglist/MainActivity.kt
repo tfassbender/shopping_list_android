@@ -1,36 +1,20 @@
 package com.tfassbender.shoppinglist
 
 import android.os.Bundle
+import android.graphics.Color
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
+import com.tfassbender.shoppinglist.ui.AppRoot
 
-/** Placeholder until the UI is planned (see doc/implementation_plan.md, "Scope of this plan"). */
+/** The single activity; all pages are Compose (see ui/AppRoot.kt). */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            MaterialTheme(colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()) {
-                Surface(Modifier.fillMaxSize()) {
-                    Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-                        Text(stringResource(R.string.placeholder))
-                    }
-                }
-            }
-        }
+        // The top bar is light blue in both themes: dark status bar icons always.
+        enableEdgeToEdge(statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT))
+        val container = (application as ShoppingListApp).container
+        setContent { AppRoot(container) }
     }
 }

@@ -15,7 +15,7 @@ don't copy wholesale (exception: `TokenCipher`, see below).
 | Language         | Kotlin, Java 11 source/target (as homeautomation) |
 | Package / app id | `com.tfassbender.shoppinglist` (debug build: suffix `.debug`, installable next to the release) |
 | SDK              | compileSdk / targetSdk 36 (Android 16), **minSdk 31 (Android 12)** – as homeautomation |
-| UI (later)       | Jetpack Compose + Material 3, single activity |
+| UI               | Jetpack Compose + Material 3, single activity, ViewModels; no navigation library |
 | Build            | Gradle Kotlin DSL, version catalog `gradle/libs.versions.toml` |
 | API client       | **Generated** with openapi-generator (`kotlin` / `jvm-retrofit2` / `kotlinx_serialization`) from `doc/openapi.json` (server's `/q/openapi`) – as homeautomation |
 | HTTP             | Retrofit + OkHttp |
@@ -46,7 +46,7 @@ com.tfassbender.shoppinglist
 │   ├── sync/    SyncEngine, SyncWorker, connectivity monitor, live updates (SSE)
 │   └── repo/    repositories – the only API the UI layer uses (Flows + suspend functions)
 ├── AppContainer.kt
-└── ui/          later (Compose screens + ViewModels)
+└── ui/          Compose pages + ViewModels (navigation, common, theme, one package per area)
 ```
 
 Rules:

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Texts only the Android app needs (the others come from the web app, see strings.xml). -->
+<resources>
+    <string name="sortable_moveUp">Move up</string>
+    <string name="sortable_moveDown">Move down</string>
+    <string name="spaces_join">Join with an invite link</string>
+    <string name="spaces_joinHint">Paste the invite link someone sent you.</string>
+    <string name="spaces_joinInvalid">This is not an invite link.</string>
+    <string name="spaces_joinNext">Next</string>
+</resources>

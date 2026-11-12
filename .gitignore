@@ -52,5 +52,6 @@ desktop.ini
 *.bak
 *.tmp
 
-# Claude local instructions
+# Claude local instructions, browser automation output
 CLAUDE.local.md
+.playwright-mcp/

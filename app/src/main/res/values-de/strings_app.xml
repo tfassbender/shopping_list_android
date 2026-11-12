@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sortable_moveUp">Nach oben</string>
+    <string name="sortable_moveDown">Nach unten</string>
+    <string name="spaces_join">Mit Einladungslink beitreten</string>
+    <string name="spaces_joinHint">Füge den Einladungslink ein, den du bekommen hast.</string>
+    <string name="spaces_joinInvalid">Das ist kein Einladungslink.</string>
+    <string name="spaces_joinNext">Weiter</string>
+</resources>

@@ -6,9 +6,9 @@ also work offline and sync when the connection is back.
 
 ## Status
 
-The non-UI part is done (Phases 0–8 of the [implementation plan](doc/implementation_plan.md)): API
-client, encrypted login session, local storage, offline sync, shop sorting and live updates. The user
-interface follows once the web app's UI is final – until then the app only shows a placeholder.
+The app is usable: lists that work offline, shop sorting, categories, item history, shared spaces with
+invites, settings and API tokens – the same features and look as the web app (see the
+[implementation plan](doc/implementation_plan.md)). Open: release signing and a production server.
 
 ## Build
 

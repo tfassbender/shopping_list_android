@@ -70,8 +70,10 @@ android {
             versionNameSuffix = "-debug"
             // Local dev server (./gradlew :backend:quarkusDev in the server repo). 10.0.2.2 is the host
             // machine as seen from the emulator; on a real device use `adb reverse tcp:4723 tcp:4723`
-            // and localhost.
-            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:4723/\"")
+            // and `-PdevApiBaseUrl=http://localhost:4723/`. Plain HTTP only works for these local hosts
+            // (network security config + AuthInterceptor).
+            val devApiBaseUrl = providers.gradleProperty("devApiBaseUrl").getOrElse("http://10.0.2.2:4723/")
+            buildConfigField("String", "API_BASE_URL", "\"$devApiBaseUrl\"")
         }
         release {
             isMinifyEnabled = true
@@ -86,6 +88,10 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+    bundle {
+        // The language can be switched in the app (user setting), so every bundle must contain all languages.
+        language { enableSplit = false }
     }
     buildFeatures {
         compose = true
@@ -102,10 +108,18 @@ android {
 
 tasks.named("preBuild") { dependsOn(tasks.named("openApiGenerate")) }
 
+// Integration tests against another server: ./gradlew testDebugUnitTest -Dshoppinglist.it.baseUrl=http://localhost:4733/
+tasks.withType<Test>().configureEach {
+    System.getProperty("shoppinglist.it.baseUrl")?.let { systemProperty("shoppinglist.it.baseUrl", it) }
+}
+
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)

@@ -4,8 +4,8 @@ Phased roadmap for the Android app of [shopping_list_server](https://github.com/
 Based on the server's `doc/features.md` (what), `doc/tech_stack.md` here (how) and `doc/server_api.md`
 here (the REST contract). Update the checkboxes and the status as work completes.
 
-**Status:** Phases 0–8 done (the non-UI part of the app). Open: release signing, manual offline checklist
-on a device. Next: the UI, once the web frontend's UI improvements are done.
+**Status:** Phases 0–9 done – the app has its UI (Phase 9, following the finished web app). Open: release
+signing, manual offline checklist on a device, App Links, widget.
 
 ## Scope of this plan
 
@@ -40,7 +40,8 @@ final web design rather than a moving target.
 | 6     | Catalog, layouts, history, suggestions    | Categories, units, shop sorting, autocomplete |
 | 7     | Live updates (SSE)                        | Shared lists update without refresh while the app is open |
 | 8     | Integration hardening                     | Tested end-to-end against a local server |
-| later | UI, widget, app links, voice input        | |
+| 9     | UI (Compose)                              | All pages of the web app, same look and texts |
+| later | Widget, app links, release                | |
 
 ---
 
@@ -224,12 +225,49 @@ Goal: confidence that the app works against the real server.
 Decided while implementing (found on the device): a `sync()` call that joins a running sync runs once more
 if changes are still queued - the running sync (e.g. started by the login) may have begun before them.
 
+## Phase 9 – UI (Compose)
+
+Goal: the app looks and behaves like the web app (`frontend/src` in the server repo) – same pages, texts,
+colors; the web app was finished first so the app follows a stable design.
+
+- [x] Theme: the web's color tokens (light blue bar, navy ink, raised fields), light/dark from the user
+      setting, 17sp base text; status bar icons dark on the bar in both themes
+- [x] Texts generated from the web's i18n (`scripts/sync_strings.py`, en + de, 359 keys); language from
+      the user setting, before login the device language or the EN/DE toggle; error codes → messages
+- [x] Navigation: own back stack (`Screen`, `Navigator`, `NavHost`), survives process death; ViewModels
+      per stack entry; title tap → start page; system back
+- [x] Shared components: page with app bar (back, title, sync badges, actions, ⋮ menu, second line),
+      bottom sheets for dialogs, confirm / name sheets, rows, fields, select, segmented, switch, FAB,
+      drag-to-reorder list (accessibility: move up/down), color picker (palette, hue, hex)
+- [x] Login, register (verification pending → "check mail"), forgot password, resend verification;
+      "session expired" notice after a 401
+- [x] Start page: lists of all spaces with open count and "last used", new list (space chips), first space
+- [x] List page: tap to check, pencil → item editor (only changed fields), category headers on/off (color
+      bars), "checked to the end" button, shop selection (connected first, remembered), rename, remove
+      checked, delete (owner); add sheet with "Add another"/"Done", suggestions (online, offline from the
+      history), automatic category, voice input (`RecognizerIntent`); space gone / list not found states
+- [x] Spaces & sharing, space page (members, make owner, remove, leave, rename, delete), invite sheet
+      (validity, copy, share), open invites (revoke), invite page; joining by pasted link (no App Links yet)
+- [x] Categories & units (reorder, colors, rename on blur, delete), items used before (search, rename,
+      remove), shops (list, editor: rename, mode, category / item order, import items of the connected
+      lists, connected lists, copy, delete)
+- [x] Settings (profile, language, theme, merge notes, keep screen on, API tokens, password, log out
+      everywhere, log out – warns about unsent changes –, delete account, server version) and API tokens
+- [x] Merge warnings sheet behind the ⚠ badge; offline badge with pending count; "Saving..."
+- [x] Online-only pages show the offline hint and disable their controls
+- [x] Tests: section grouping / amounts, color helpers, navigator; checked on the emulator against a
+      local server (light + dark)
+
+Decided while implementing:
+- No navigation library (as homeautomation); a back-stack entry carries a UUID that keys its saved state
+  and ViewModel store, so two lists on the stack don't share state.
+- Dialogs are bottom sheets (the web's dialogs are bottom sheets on phones too).
+- Joining a space works by pasting the invite link (⋮ on "Spaces & sharing") until App Links exist.
+- Debug builds take `-PdevApiBaseUrl=…` (local hosts only) – e.g. a real device via `adb reverse`.
+- The bundle keeps all languages (`enableSplit = false`): the language is switched in the app.
+
 ## Later (not planned in detail yet)
 
-- [ ] **UI** (Compose): screens following the final web app – start page with spaces, lists, list screen
-      with quick add, item editor, categories, layouts, members/invites, settings, merge warning dialog,
-      offline indicator; German + English strings; dark mode
-- [ ] Voice input via Android `SpeechRecognizer` (free, on-device) – *Could*
 - [ ] Home screen widget (Glance)
 - [ ] Android App Links for invite / verification / reset links (server issue #2: `assetlinks.json`)
 - [ ] Release: signing, production server URL, distribution

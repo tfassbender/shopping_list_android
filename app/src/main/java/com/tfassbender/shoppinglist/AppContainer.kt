@@ -10,6 +10,7 @@ import com.tfassbender.shoppinglist.api.apis.LayoutsApi
 import com.tfassbender.shoppinglist.api.apis.ListsApi
 import com.tfassbender.shoppinglist.api.apis.SpacesApi
 import com.tfassbender.shoppinglist.api.apis.SyncApi
+import com.tfassbender.shoppinglist.api.apis.SystemApi
 import com.tfassbender.shoppinglist.data.local.LocalStore
 import com.tfassbender.shoppinglist.data.local.SessionStore
 import com.tfassbender.shoppinglist.data.local.TokenCipher
@@ -17,6 +18,8 @@ import com.tfassbender.shoppinglist.data.local.UiPreferences
 import com.tfassbender.shoppinglist.data.remote.ApiClientFactory
 import com.tfassbender.shoppinglist.data.remote.EMULATOR_HOST
 import com.tfassbender.shoppinglist.data.remote.LOCAL_HOSTS
+import com.tfassbender.shoppinglist.data.remote.apiCall
+import com.tfassbender.shoppinglist.data.remote.getOrNull
 import com.tfassbender.shoppinglist.data.repo.AccountRepository
 import com.tfassbender.shoppinglist.data.repo.ApiTokenRepository
 import com.tfassbender.shoppinglist.data.repo.AuthRepository
@@ -26,9 +29,12 @@ import com.tfassbender.shoppinglist.data.repo.ListRepository
 import com.tfassbender.shoppinglist.data.repo.SpaceRepository
 import com.tfassbender.shoppinglist.data.sync.ApiSyncGateway
 import com.tfassbender.shoppinglist.data.sync.AppSync
+import com.tfassbender.shoppinglist.data.sync.Connectivity
 import com.tfassbender.shoppinglist.data.sync.LiveUpdates
 import com.tfassbender.shoppinglist.data.sync.SyncEngine
 import com.tfassbender.shoppinglist.data.sync.SyncWorker
+import com.tfassbender.shoppinglist.data.sync.onlineFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -75,7 +81,7 @@ class AppContainer(context: Context) {
 
     val catalog = CatalogRepository(apiClient.createService(CatalogApi::class.java), syncEngine)
 
-    private val uiPreferences = UiPreferences(context.uiDataStore)
+    val uiPreferences = UiPreferences(context.uiDataStore)
 
     val layouts = LayoutRepository(apiClient.createService(LayoutsApi::class.java), syncEngine, uiPreferences)
 
@@ -91,6 +97,16 @@ class AppContainer(context: Context) {
     }
 
     val apiTokens = ApiTokenRepository(apiClient.createService(APITokensApi::class.java))
+
+    val connectivity = Connectivity(context)
+
+    /** Network present and the last sync didn't fail with a network error - online-only screens use it. */
+    val online: Flow<Boolean> = onlineFlow(connectivity, syncEngine)
+
+    private val systemApi = apiClient.createService(SystemApi::class.java)
+
+    /** The server's version (settings page); null if unreachable. */
+    suspend fun serverVersion(): String? = apiCall { systemApi.getHealth() }.getOrNull()?.version
 
     init {
         auth.addLogoutHook {

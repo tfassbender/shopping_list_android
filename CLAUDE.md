@@ -12,8 +12,10 @@ API client). Look there before inventing something new.
 
 ## How we work
 
-- The UI is **not planned yet** – it follows the web app once its UI improvements are done. Don't build
-  feature UI until the user asks; `MainActivity` is a placeholder.
+- The UI **follows the web app** (`frontend/src` in the server repo): same pages, wording, colors and
+  behavior. Before changing a screen, look at the web version; the running web app (Vite, port 5173) can
+  be inspected with Playwright. Texts come from the web's i18n via `scripts/sync_strings.py` (app-only
+  texts in `strings_app.xml`).
 - Testing: JVM unit tests for logic, store, sync engine and API layer (MockWebServer); integration tests
   against a local server (`IntegrationTest*`, skipped when no server runs).
 - Commit per phase; the user decides about pushing unless they said otherwise.
@@ -29,13 +31,15 @@ API client). Look there before inventing something new.
 ```
 Local server: `./gradlew :backend:quarkusDev` in the server repo (port 4723, email verification off).
 The emulator reaches it at `http://10.0.2.2:4723/` (debug `API_BASE_URL`); on a real device run
-`adb reverse tcp:4723 tcp:4723` and use localhost.
-Updating the API spec: `update-openapi` skill (`.claude/skills/update-openapi/`) – it also patches gaps of
-the Quarkus spec (see the script).
+`adb reverse tcp:4723 tcp:4723` and build with `-PdevApiBaseUrl=http://localhost:4723/` (debug only; another
+server: any local host/port). Integration tests against another server: `-Dshoppinglist.it.baseUrl=…`.
+Updating the API spec: `update-openapi` skill (`.claude/skills/update-openapi/`).
+Updating the texts: `python scripts/sync_strings.py <server repo>/frontend/src/i18n` (then check
+`ui/common/ErrorCodes.kt` for new error codes).
 
 ## Architecture
 
-Kotlin, Compose (later), single activity, minSdk 31, targetSdk 36, Java 11. Manual DI via `AppContainer`
+Kotlin, Compose + Material 3, single activity, minSdk 31, targetSdk 36, Java 11. Manual DI via `AppContainer`
 (created in `ShoppingListApp`).
 
 - `api.*` – **generated** from `doc/openapi.json` into `app/build/generated/openapi`. Never edit, never
@@ -49,6 +53,11 @@ Kotlin, Compose (later), single activity, minSdk 31, targetSdk 36, Java 11. Manu
 - `data/sync/` – `SyncEngine` (port of the web `SyncEngine`), `SyncWorker`, connectivity, live updates (SSE).
 - `data/repo/` – repositories: the only API the UI uses (Flows + suspend functions; online-only actions
   return `ApiResult`, offline list changes return `Result` with `InvalidInputException` for invalid input).
+- `ui/` – Compose pages + ViewModels (one per page, created with `pageViewModel { container -> … }`).
+  `navigation/` is a small hand-rolled back stack (`Screen`, `Navigator`, `NavHost`; ViewModels live per
+  stack entry). `common/` holds the shared look (`Page` with app bar/menu/sync badges, `AppSheet` bottom
+  sheets, rows, fields, `SortableColumn`, color picker); `theme/` the web app's color tokens. Pure UI logic
+  (`ui/list/ItemSections.kt`: amounts, sections) is unit-tested like the web's.
 - `AppContainer` wires everything; `AppSync` decides when to sync (foreground, login, network, interval,
   live updates); `SyncWorker` sends queued changes in the background.
 
