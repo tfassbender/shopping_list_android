@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Simple shopping cart glyph, sized to sit inside the adaptive-icon safe zone. -->
+<!-- The web app's icon (frontend/public/favicon.svg in the server repo): a note sheet with three lines,
+     scaled 2x and centered in the adaptive-icon safe zone. Background: @color/launcher_background. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -7,8 +8,12 @@
     android:viewportHeight="108">
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M30,34h7l6,26h26l5,-18H42l-1,-4h37l-7,26H39l-6,-26h-3z" />
+        android:strokeColor="#FF0B2A42"
+        android:strokeWidth="5.2"
+        android:pathData="M41,31h26a5,5 0,0 1,5 5v36a5,5 0,0 1,-5 5h-26a5,5 0,0 1,-5 -5v-36a5,5 0,0 1,5 -5z" />
     <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M46,70a4,4 0,1 0,8 0a4,4 0,1 0,-8 0zM62,70a4,4 0,1 0,8 0a4,4 0,1 0,-8 0z" />
+        android:strokeColor="#FF0B2A42"
+        android:strokeWidth="5.6"
+        android:strokeLineCap="round"
+        android:pathData="M45,44h18M45,54h18M45,64h12" />
 </vector>
