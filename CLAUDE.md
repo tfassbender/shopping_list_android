@@ -30,7 +30,7 @@ API client). Look there before inventing something new.
 ./gradlew connectedDebugAndroidTest  # device tests (emulator; uses the local server via 10.0.2.2 if running)
 ```
 Local server: `./gradlew :backend:quarkusDev` in the server repo (port 4723, email verification off).
-The emulator reaches it at `http://10.0.2.2:4723/` (debug `API_BASE_URL`); on a real device run
+The emulator reaches it at `http://10.0.2.2:4723/` (debug `API_BASE_URL` = the default server); on a real device run
 `adb reverse tcp:4723 tcp:4723` and build with `-PdevApiBaseUrl=http://localhost:4723/` (debug only; another
 server: any local host/port). Integration tests against another server: `-Dshoppinglist.it.baseUrl=…`.
 Updating the API spec: `update-openapi` skill (`.claude/skills/update-openapi/`).
@@ -46,7 +46,7 @@ Kotlin, Compose + Material 3, single activity, minSdk 31, targetSdk 36, Java 11.
   hand-write API models.
 - `domain/` – pure Kotlin (no Android, no Retrofit): models, `SyncOp`, `applyOp`/`applyPull`, `ItemSorter`,
   `normalizeName`, limits. Ports of server/web logic with mirrored tests.
-- `data/remote/` – `ApiClientFactory` (OkHttp, `AuthInterceptor`), `apiCall { }` → `ApiResult`/`ApiError`
+- `data/remote/` – `ApiClientFactory` (OkHttp, `ServerRewriteInterceptor`, `AuthInterceptor`), `apiCall { }` → `ApiResult`/`ApiError`
   (with the server's stable error `code`), DTO → domain mapping.
 - `data/local/` – `TokenCipher` + `SessionStore` (encrypted token in DataStore), JSON file store
   (`filesDir/store/`, atomic writes).
@@ -75,6 +75,10 @@ Kotlin, Compose + Material 3, single activity, minSdk 31, targetSdk 36, Java 11.
 ## Security
 
 - Session token: AES-GCM encrypted with an Android Keystore key (`TokenCipher`), never logged or displayed.
+- Server: `BuildConfig.API_BASE_URL` is only the default; the user can choose another server (settings, login
+  page; `ServerConfig` / `ServerRepository`). Clients are built for `SERVER_PLACEHOLDER` and
+  `ServerRewriteInterceptor` sends each request to the current server. Changing it logs out first (session
+  and local data belong to one server); a new address is checked (`GET /api/health`) before it's used.
 - HTTPS only, except plain HTTP to the local dev server in debug builds (`src/debug` network security
   config: `10.0.2.2`, `localhost`). `AuthInterceptor` refuses to send the token to any other host than the
   API's or over plain HTTP to a non-local host; the client doesn't follow redirects. Keep it that way.

@@ -121,11 +121,15 @@ Mirrors `frontend/src/offline/syncEngine.ts` of the server repo:
 
 ## Server URL
 
-The server is not deployed yet → configurable:
-- `BuildConfig.API_BASE_URL` per build type (debug: `http://10.0.2.2:4723/`, release: production URL
-  once known).
-- No runtime override: on a real device use `adb reverse tcp:4723 tcp:4723` and localhost, so plain HTTP
-  stays limited to fixed local hosts.
+The server is open source, so the app talks to a configurable server:
+- `BuildConfig.API_BASE_URL` per build type is the default (debug: `http://10.0.2.2:4723/`, release: the
+  production URL once known).
+- The user can enter another address (settings, login page): stored per device in `ServerConfig`, checked
+  with `GET /api/health` before it's used; changing it logs out (session and local data belong to one
+  server). The API clients are built for `SERVER_PLACEHOLDER`; `ServerRewriteInterceptor` sends every
+  request to the current server and `AuthInterceptor` only gives the token to that server's host.
+- HTTPS only; plain HTTP stays limited to the fixed local hosts of debug builds (on a real device:
+  `adb reverse tcp:4723 tcp:4723` and localhost).
 
 ## Sharing code with the server
 

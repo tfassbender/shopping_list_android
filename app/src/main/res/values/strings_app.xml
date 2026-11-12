@@ -7,4 +7,16 @@
     <string name="spaces_joinHint">Paste the invite link someone sent you.</string>
     <string name="spaces_joinInvalid">This is not an invite link.</string>
     <string name="spaces_joinNext">Next</string>
+    <string name="server_title">Server</string>
+    <string name="server_address">Server address</string>
+    <string name="server_hint">The shopping list server is open source - if you or your family run your own one, enter its address here.</string>
+    <string name="server_default">Default: %1$s</string>
+    <string name="server_useDefault">Use default</string>
+    <string name="server_logoutWarning">Changing the server logs you out on this device. Your lists stay on the old server.</string>
+    <string name="server_pendingWarning">%1$s changes could not be sent to the server yet. They will be lost if you change the server now.</string>
+    <string name="server_INVALID">That is not a valid address.</string>
+    <string name="server_NOT_HTTPS">The address must start with https://.</string>
+    <string name="server_UNREACHABLE">The server can\'t be reached. Check the address and your connection.</string>
+    <string name="server_NOT_A_SHOPPING_LIST_SERVER">No shopping list server answers at this address.</string>
+    <string name="server_onLogin">Server: %1$s</string>
 </resources>

@@ -12,12 +12,14 @@ import com.tfassbender.shoppinglist.api.apis.SpacesApi
 import com.tfassbender.shoppinglist.api.apis.SyncApi
 import com.tfassbender.shoppinglist.api.apis.SystemApi
 import com.tfassbender.shoppinglist.data.local.LocalStore
+import com.tfassbender.shoppinglist.data.local.ServerConfig
 import com.tfassbender.shoppinglist.data.local.SessionStore
 import com.tfassbender.shoppinglist.data.local.TokenCipher
 import com.tfassbender.shoppinglist.data.local.UiPreferences
 import com.tfassbender.shoppinglist.data.remote.ApiClientFactory
 import com.tfassbender.shoppinglist.data.remote.EMULATOR_HOST
 import com.tfassbender.shoppinglist.data.remote.LOCAL_HOSTS
+import com.tfassbender.shoppinglist.data.remote.SERVER_PLACEHOLDER
 import com.tfassbender.shoppinglist.data.remote.apiCall
 import com.tfassbender.shoppinglist.data.remote.getOrNull
 import com.tfassbender.shoppinglist.data.repo.AccountRepository
@@ -25,6 +27,7 @@ import com.tfassbender.shoppinglist.data.repo.ApiTokenRepository
 import com.tfassbender.shoppinglist.data.repo.AuthRepository
 import com.tfassbender.shoppinglist.data.repo.CatalogRepository
 import com.tfassbender.shoppinglist.data.repo.LayoutRepository
+import com.tfassbender.shoppinglist.data.repo.ServerRepository
 import com.tfassbender.shoppinglist.data.repo.ListRepository
 import com.tfassbender.shoppinglist.data.repo.SpaceRepository
 import com.tfassbender.shoppinglist.data.sync.ApiSyncGateway
@@ -45,6 +48,7 @@ import java.util.concurrent.TimeUnit
 
 private val Context.sessionDataStore by preferencesDataStore(name = "session")
 private val Context.uiDataStore by preferencesDataStore(name = "ui")
+private val Context.serverDataStore by preferencesDataStore(name = "server")
 
 /** Manual dependency injection: the app-wide singletons, created once in [ShoppingListApp]. */
 class AppContainer(context: Context) {
@@ -55,19 +59,34 @@ class AppContainer(context: Context) {
 
     private val sessionStore = SessionStore(context.sessionDataStore, TokenCipher())
 
-    /** One builder per client, all with the same safeguards (AuthInterceptor, no redirects, logging). */
+    /** The server: the build's default (`API_BASE_URL`) or the one the user chose in the settings. */
+    private val serverConfig = ServerConfig(context.serverDataStore, BuildConfig.API_BASE_URL)
+
+    // Release builds: HTTPS only. Debug builds: also the local dev server (emulator host / adb reverse).
+    private val plainHttpHosts = if (BuildConfig.DEBUG) LOCAL_HOSTS + EMULATOR_HOST else emptySet()
+
+    /**
+     * One builder per client, all with the same safeguards (AuthInterceptor, no redirects, logging). The
+     * clients are built for [SERVER_PLACEHOLDER]; every request goes to the server configured right then.
+     */
     private fun okHttpBuilder() = ApiClientFactory.okHttp(
-        baseUrl = BuildConfig.API_BASE_URL,
+        baseUrl = SERVER_PLACEHOLDER,
         // Runs on OkHttp's worker thread; DataStore serves this from memory after the first read.
         tokenProvider = { runBlocking { sessionStore.current()?.token } },
         unauthorizedListener = { auth.onUnauthorized() },
         logRequests = BuildConfig.DEBUG,
-        // Release builds: HTTPS only. Debug builds: also the local dev server (emulator host / adb reverse).
-        plainHttpHosts = if (BuildConfig.DEBUG) LOCAL_HOSTS + EMULATOR_HOST else emptySet(),
+        plainHttpHosts = plainHttpHosts,
+        server = serverConfig,
     )
-    private val apiClient = ApiClientFactory.create(BuildConfig.API_BASE_URL, okHttpBuilder())
+    private val apiClient = ApiClientFactory.create(SERVER_PLACEHOLDER, okHttpBuilder())
 
     val auth: AuthRepository = AuthRepository(apiClient.createService(AuthApi::class.java), sessionStore, clock, appScope)
+
+    val server = ServerRepository(serverConfig, auth, plainHttpHosts) { url ->
+        // A plain client for checking another server before switching to it: never carries the token.
+        val okHttp = ApiClientFactory.okHttp(url.toString(), { null }, { }, BuildConfig.DEBUG, plainHttpHosts)
+        ApiClientFactory.create(url.toString(), okHttp).createService(SystemApi::class.java)
+    }
 
     private val store = LocalStore(File(context.filesDir, "store"))
 
@@ -89,7 +108,7 @@ class AppContainer(context: Context) {
         LiveUpdates(
             // The server sends a PING every 25 s: no data for 60 s means the connection is dead.
             client = okHttpBuilder().readTimeout(60, TimeUnit.SECONDS).build(),
-            url = BuildConfig.API_BASE_URL + "api/events",
+            url = SERVER_PLACEHOLDER + "api/events",
             hasSession = { auth.currentSession() != null },
             listener = listener,
             scope = appScope,

@@ -267,6 +267,9 @@ Decided while implementing:
 - Dialogs are bottom sheets (the web's dialogs are bottom sheets on phones too).
 - Joining a space works by pasting the invite link (⋮ on "Spaces & sharing") – kept until App Links exist.
 - Debug builds take `-PdevApiBaseUrl=…` (local hosts only) – e.g. a real device via `adb reverse`.
+- The server is configurable (open source, anyone can run one): `API_BASE_URL` is the default, the user
+  can enter another address in the settings or on the login page (https only; checked with
+  `GET /api/health`; changing it logs out). Added 2026-11-12.
 - The bundle keeps all languages (`enableSplit = false`): the language is switched in the app.
 
 ## Later (not planned in detail yet)

@@ -24,6 +24,7 @@ import com.tfassbender.shoppinglist.R
 import com.tfassbender.shoppinglist.data.remote.ApiError
 import com.tfassbender.shoppinglist.data.remote.ApiResult
 import com.tfassbender.shoppinglist.data.remote.code
+import com.tfassbender.shoppinglist.data.remote.displayHost
 import com.tfassbender.shoppinglist.data.repo.AuthRepository
 import com.tfassbender.shoppinglist.data.repo.RegisterResult
 import com.tfassbender.shoppinglist.ui.common.AppButton
@@ -32,6 +33,8 @@ import com.tfassbender.shoppinglist.ui.common.ButtonVariant
 import com.tfassbender.shoppinglist.ui.common.ErrorCodeText
 import com.tfassbender.shoppinglist.ui.common.ErrorText
 import com.tfassbender.shoppinglist.ui.common.LinkText
+import com.tfassbender.shoppinglist.ui.common.LocalAppContainer
+import com.tfassbender.shoppinglist.ui.settings.ServerSheet
 import com.tfassbender.shoppinglist.ui.common.Page
 import com.tfassbender.shoppinglist.ui.common.PageContent
 import com.tfassbender.shoppinglist.ui.common.SuccessText
@@ -110,6 +113,8 @@ fun LoginScreen(sessionExpired: Boolean) {
     val resent by vm.verificationResent.collectAsState()
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
+    var serverSheet by rememberSaveable { mutableStateOf(false) }
+    val serverUrl by LocalAppContainer.current.server.url.collectAsState()
     val submit = { if (email.isNotBlank() && password.isNotEmpty()) vm.login(email, password) }
 
     Page(stringResource(R.string.auth_login_title)) { padding ->
@@ -127,10 +132,13 @@ fun LoginScreen(sessionExpired: Boolean) {
                 Column(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     LinkText(stringResource(R.string.auth_login_noAccount), { navigator.push(Screen.Register) })
                     LinkText(stringResource(R.string.auth_login_forgot), { navigator.push(Screen.ForgotPassword) }, muted = true)
+                    // Someone with their own server needs to choose it before logging in.
+                    LinkText(stringResource(R.string.server_onLogin, serverUrl.displayHost()), { serverSheet = true }, muted = true)
                 }
             }
         }
     }
+    if (serverSheet) ServerSheet(loggedIn = false, pendingChanges = 0, onDismiss = { serverSheet = false })
 }
 
 private const val MIN_PASSWORD_LENGTH = 8

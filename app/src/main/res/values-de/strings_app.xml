@@ -6,4 +6,16 @@
     <string name="spaces_joinHint">Füge den Einladungslink ein, den du bekommen hast.</string>
     <string name="spaces_joinInvalid">Das ist kein Einladungslink.</string>
     <string name="spaces_joinNext">Weiter</string>
+    <string name="server_title">Server</string>
+    <string name="server_address">Serveradresse</string>
+    <string name="server_hint">Der Einkaufslisten-Server ist Open Source - wenn du oder deine Familie einen eigenen betreiben, gib hier seine Adresse ein.</string>
+    <string name="server_default">Standard: %1$s</string>
+    <string name="server_useDefault">Standard verwenden</string>
+    <string name="server_logoutWarning">Beim Wechsel des Servers wirst du auf diesem Gerät abgemeldet. Deine Listen bleiben auf dem alten Server.</string>
+    <string name="server_pendingWarning">%1$s Änderungen konnten noch nicht an den Server gesendet werden. Sie gehen verloren, wenn du jetzt den Server wechselst.</string>
+    <string name="server_INVALID">Das ist keine gültige Adresse.</string>
+    <string name="server_NOT_HTTPS">Die Adresse muss mit https:// beginnen.</string>
+    <string name="server_UNREACHABLE">Der Server ist nicht erreichbar. Prüfe die Adresse und deine Verbindung.</string>
+    <string name="server_NOT_A_SHOPPING_LIST_SERVER">Unter dieser Adresse antwortet kein Einkaufslisten-Server.</string>
+    <string name="server_onLogin">Server: %1$s</string>
 </resources>

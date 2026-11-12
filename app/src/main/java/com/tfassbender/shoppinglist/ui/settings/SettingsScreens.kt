@@ -39,12 +39,14 @@ import com.tfassbender.shoppinglist.AppContainer
 import com.tfassbender.shoppinglist.R
 import com.tfassbender.shoppinglist.data.remote.ApiError
 import com.tfassbender.shoppinglist.data.remote.ApiResult
+import com.tfassbender.shoppinglist.data.remote.displayAddress
 import com.tfassbender.shoppinglist.domain.ApiToken
 import com.tfassbender.shoppinglist.domain.CreatedApiToken
 import com.tfassbender.shoppinglist.domain.Theme
 import com.tfassbender.shoppinglist.domain.TokenScope
 import com.tfassbender.shoppinglist.domain.UserSettings
 import com.tfassbender.shoppinglist.ui.common.ActionViewModel
+import com.tfassbender.shoppinglist.ui.common.LocalAppContainer
 import com.tfassbender.shoppinglist.ui.common.AppButton
 import com.tfassbender.shoppinglist.ui.common.AppSheet
 import com.tfassbender.shoppinglist.ui.common.AppSwitch
@@ -126,7 +128,7 @@ class SettingsViewModel(private val container: AppContainer) : ActionViewModel()
     fun deleteAccount() = act({ account.deleteAccount() })
 }
 
-private enum class SettingsSheet { NAME, PASSWORD, LOGOUT_EVERYWHERE, LOGOUT_PENDING, DELETE }
+private enum class SettingsSheet { NAME, PASSWORD, LOGOUT_EVERYWHERE, LOGOUT_PENDING, DELETE, SERVER }
 
 /**
  * Settings in plain sections: profile, display, AI agents, account. Display choices apply at once;
@@ -146,6 +148,7 @@ fun SettingsScreen() {
     val error by vm.error.collectAsStateWithLifecycle()
     val pending by vm.pending.collectAsStateWithLifecycle()
     val pendingChanges by vm.pendingChanges.collectAsStateWithLifecycle()
+    val serverUrl by LocalAppContainer.current.server.url.collectAsStateWithLifecycle()
     var sheet by rememberSaveable { mutableStateOf<SettingsSheet?>(null) }
     val colors = AppTheme.colors
 
@@ -218,6 +221,15 @@ fun SettingsScreen() {
                 // Logging out works offline too (it only forgets this device's data).
                 ListRow(stringResource(R.string.nav_logout), onClick = { if (pendingChanges > 0) sheet = SettingsSheet.LOGOUT_PENDING else vm.logout() })
                 ListRow(stringResource(R.string.settings_deleteAccount), danger = true, onClick = { sheet = SettingsSheet.DELETE }, enabled = enabled)
+
+                // Works offline too: a moved or wrong server is exactly when it's needed.
+                SectionTitle(stringResource(R.string.server_title))
+                ListRow(
+                    stringResource(R.string.server_address),
+                    hint = serverUrl.displayAddress(),
+                    onClick = { sheet = SettingsSheet.SERVER },
+                    chevron = true,
+                )
                 Text(
                     stringResource(R.string.app_name) + (version?.let { " " + stringResource(R.string.settings_version, it) } ?: ""),
                     fontSize = 15.sp,
@@ -266,6 +278,7 @@ fun SettingsScreen() {
             onConfirm = vm::deleteAccount,
             onDismiss = { sheet = null },
         )
+        SettingsSheet.SERVER -> ServerSheet(loggedIn = true, pendingChanges = pendingChanges, onDismiss = { sheet = null })
         null -> Unit
     }
 }
