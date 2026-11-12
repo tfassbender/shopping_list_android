@@ -87,7 +87,8 @@ class Navigator(initial: List<Entry>) {
 }
 
 @Composable
-fun rememberNavigator(initial: Screen): Navigator = rememberSaveable(saver = Navigator.saver) { Navigator(listOf(Entry(initial))) }
+fun rememberNavigator(initial: List<Screen>): Navigator =
+    rememberSaveable(saver = Navigator.saver) { Navigator(initial.map { Entry(it) }) }
 
 val LocalNavigator = staticCompositionLocalOf<Navigator> { error("no Navigator provided") }
 

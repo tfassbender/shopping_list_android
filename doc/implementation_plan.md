@@ -272,6 +272,8 @@ Decided while implementing:
   can enter another address in the settings or on the login page (https only; checked with
   `GET /api/health`; changing it logs out). Added 2026-11-12.
 - The bundle keeps all languages (`enableSplit = false`): the language is switched in the app.
+- The app starts on the list opened last on this device (local only, cleared on logout; back leads to
+  the start page; a list that is gone meanwhile → start page). App-only, decided 2026-11-12.
 
 ## Later (not planned in detail yet)
 

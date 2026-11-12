@@ -13,6 +13,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -29,6 +30,7 @@ import com.tfassbender.shoppinglist.ui.auth.LoginScreen
 import com.tfassbender.shoppinglist.ui.auth.RegisterScreen
 import com.tfassbender.shoppinglist.ui.common.LocalAppContainer
 import com.tfassbender.shoppinglist.ui.home.HomeScreen
+import com.tfassbender.shoppinglist.ui.home.spaceLists
 import com.tfassbender.shoppinglist.ui.list.ListScreen
 import com.tfassbender.shoppinglist.ui.navigation.NavHost
 import com.tfassbender.shoppinglist.ui.navigation.Screen
@@ -45,6 +47,8 @@ import com.tfassbender.shoppinglist.ui.space.SpacesScreen
 import com.tfassbender.shoppinglist.ui.theme.AppTheme
 import com.tfassbender.shoppinglist.ui.theme.ShoppingListTheme
 import java.util.Locale
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 
 private val AUTH_SCREENS = setOf(Screen.Login, Screen.Register, Screen.ForgotPassword)
 
@@ -56,6 +60,8 @@ private val AUTH_SCREENS = setOf(Screen.Login, Screen.Register, Screen.ForgotPas
 @Composable
 fun AppRoot(container: AppContainer) {
     val loggedIn by container.auth.isLoggedIn.collectAsStateWithLifecycle(null)
+    // The pages the app opens with - decided once per app start (a few ms: session and local files).
+    val start by produceState<List<Screen>?>(null) { value = startScreens(container) }
     val cachedUser by container.account.user.collectAsStateWithLifecycle(null)
     val deviceLanguage by container.uiPreferences.deviceLanguage.collectAsStateWithLifecycle(null)
     val keepScreenOn by container.uiPreferences.keepScreenOn.collectAsStateWithLifecycle(true)
@@ -67,10 +73,8 @@ fun AppRoot(container: AppContainer) {
         ShoppingListTheme(user?.settings?.theme ?: Theme.SYSTEM) {
             CompositionLocalProvider(LocalAppContainer provides container) {
                 Box(Modifier.fillMaxSize().background(AppTheme.colors.surface)) {
-                    when (loggedIn) {
-                        null -> Unit // session not read yet (a few ms)
-                        else -> Pages(container, loggedIn == true)
-                    }
+                    val startScreens = start
+                    if (loggedIn != null && startScreens != null) Pages(container, loggedIn == true, startScreens)
                 }
             }
         }
@@ -78,8 +82,8 @@ fun AppRoot(container: AppContainer) {
 }
 
 @Composable
-private fun Pages(container: AppContainer, loggedIn: Boolean) {
-    val navigator = rememberNavigator(if (loggedIn) Screen.Home else Screen.Login)
+private fun Pages(container: AppContainer, loggedIn: Boolean, start: List<Screen>) {
+    val navigator = rememberNavigator(start)
     // Why the user was logged out - shown on the login page (e.g. session expired elsewhere).
     var logoutReason by rememberSaveable { mutableStateOf<LogoutReason?>(null) }
 
@@ -115,6 +119,20 @@ private fun Pages(container: AppContainer, loggedIn: Boolean) {
             Screen.ApiTokens -> ApiTokensScreen()
         }
     }
+}
+
+/**
+ * Logged in, the app opens on the list that was open last on this device (stored locally, not on the
+ * server), with the start page below it for "back". A list that is gone meanwhile: the start page.
+ * After the app was killed in the background, the saved back stack wins (see [rememberNavigator]).
+ */
+private suspend fun startScreens(container: AppContainer): List<Screen> {
+    if (!container.auth.isLoggedIn.first()) return listOf(Screen.Login)
+    val last = container.uiPreferences.lastList.first() ?: return listOf(Screen.Home)
+    // null = the space isn't on this device yet: open the list anyway, its page waits for the sync.
+    val lists = withTimeoutOrNull(1_000) { container.spaceLists(last.spaceId).first() }
+    if (lists != null && lists.none { it.id == last.listId }) return listOf(Screen.Home)
+    return listOf(Screen.Home, Screen.ListPage(last.spaceId, last.listId))
 }
 
 /** Texts in [language] (`en`/`de`; null = the device's language) - independent of the system setting. */
