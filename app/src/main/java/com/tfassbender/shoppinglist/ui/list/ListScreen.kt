@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Sell
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -131,6 +132,8 @@ fun ListScreen(spaceId: String, listId: String) {
         add(MenuEntry(stringResource(R.string.space_catalog), Icons.Filled.Sell, divider = true) { navigator.push(Screen.Catalog(spaceId)) })
         add(MenuEntry(stringResource(R.string.space_layouts), Icons.Filled.Store) { navigator.push(Screen.Layouts(spaceId)) })
         add(MenuEntry(stringResource(R.string.history_title), Icons.Filled.History) { navigator.push(Screen.History(spaceId)) })
+        // The list is the page the app opens on, so the settings are reachable from here too (issue #3).
+        add(MenuEntry(stringResource(R.string.nav_settings), Icons.Filled.Settings, divider = true) { navigator.push(Screen.Settings) })
         if (isOwner) add(MenuEntry(stringResource(R.string.list_delete), Icons.Filled.Delete, danger = true, divider = true) { sheet = ListSheet.DELETE })
     }
 
