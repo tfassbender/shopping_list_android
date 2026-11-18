@@ -104,8 +104,9 @@ private fun AmountUnitFields(quantity: String, unit: String, units: List<String>
     }
 }
 
+/** The category of an item (add and edit sheets, items used before): searchable, with a color dot. */
 @Composable
-private fun CategorySelect(label: String, noneLabel: String, value: String, catalog: Catalog?, onChange: (String) -> Unit) {
+fun CategorySelect(label: String, noneLabel: String, value: String, catalog: Catalog?, onChange: (String) -> Unit) {
     val categories = catalog?.categories.orEmpty()
     SelectField(
         label = label,

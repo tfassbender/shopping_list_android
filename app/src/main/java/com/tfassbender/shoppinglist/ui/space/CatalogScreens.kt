@@ -41,6 +41,7 @@ import androidx.lifecycle.viewModelScope
 import com.tfassbender.shoppinglist.AppContainer
 import com.tfassbender.shoppinglist.R
 import com.tfassbender.shoppinglist.data.remote.ApiResult
+import com.tfassbender.shoppinglist.domain.Catalog
 import com.tfassbender.shoppinglist.domain.Category
 import com.tfassbender.shoppinglist.domain.HistoryEntry
 import com.tfassbender.shoppinglist.ui.common.ActionViewModel
@@ -64,6 +65,7 @@ import com.tfassbender.shoppinglist.ui.common.SheetActions
 import com.tfassbender.shoppinglist.ui.common.SortableColumn
 import com.tfassbender.shoppinglist.ui.common.pageViewModel
 import com.tfassbender.shoppinglist.ui.common.stateIn
+import com.tfassbender.shoppinglist.ui.list.CategorySelect
 import com.tfassbender.shoppinglist.ui.list.parseColor
 import com.tfassbender.shoppinglist.ui.theme.AppTheme
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -257,15 +259,31 @@ class HistoryViewModel(private val container: AppContainer, private val spaceId:
         }
     }
 
-    fun rename(entry: HistoryEntry, newName: String, onDone: () -> Unit) =
-        act({ container.catalog.renameHistoryItem(spaceId, entry.name, newName) }) { onDone() }
+    /**
+     * Saves a changed name and/or category ([categoryId] null: none). The category is saved first: after a
+     * rename the entry is addressed by its new name.
+     */
+    fun save(entry: HistoryEntry, newName: String, categoryId: String?, onDone: () -> Unit) {
+        val renamed = newName.isNotBlank() && newName.trim() != entry.name
+        val recategorized = categoryId != entry.categoryId
+        if (!renamed && !recategorized) return onDone()
+        act({
+            val categoryResult = if (recategorized) container.catalog.setHistoryItemCategory(spaceId, entry.name, categoryId) else null
+            when {
+                categoryResult is ApiResult.Failure -> categoryResult
+                renamed -> container.catalog.renameHistoryItem(spaceId, entry.name, newName.trim())
+                else -> categoryResult ?: ApiResult.Success(emptyList())
+            }
+        }) { onDone() }
+    }
 
     fun remove(entry: HistoryEntry, onDone: () -> Unit) = act({ container.catalog.removeHistoryItem(spaceId, entry.name) }) { onDone() }
 }
 
 /**
  * "Items used before": the item history of a space, which feeds the suggestions and the automatic
- * category. Tap an item to rename it (e.g. a typo) or remove it. A search field filters the list.
+ * category. Tap an item to rename it (e.g. a typo), change its category or remove it. A search field
+ * filters the list.
  */
 @Composable
 fun HistoryScreen(spaceId: String) {
@@ -306,22 +324,22 @@ fun HistoryScreen(spaceId: String) {
             }
         }
     }
-    editing?.let { entry -> HistoryEntrySheet(vm, entry, onDismiss = { editing = null }) }
+    editing?.let { entry -> HistoryEntrySheet(vm, entry, catalog, onDismiss = { editing = null }) }
 }
 
-/** Rename (merged with an existing entry of the new name) or remove one remembered item. */
+/** Rename (merged with an existing entry of the new name), change the category or remove one remembered item. */
 @Composable
-private fun HistoryEntrySheet(vm: HistoryViewModel, entry: HistoryEntry, onDismiss: () -> Unit) {
+private fun HistoryEntrySheet(vm: HistoryViewModel, entry: HistoryEntry, catalog: Catalog?, onDismiss: () -> Unit) {
     val error by vm.error.collectAsStateWithLifecycle()
     val pending by vm.pending.collectAsStateWithLifecycle()
     var name by rememberSaveable(entry.name) { mutableStateOf(entry.name) }
+    var categoryId by rememberSaveable(entry.name) { mutableStateOf(entry.categoryId.orEmpty()) }
     LaunchedEffect(entry) { vm.clearError() }
-    val save = {
-        if (name.isNotBlank() && name.trim() != entry.name) vm.rename(entry, name.trim(), onDismiss) else onDismiss()
-    }
+    val save = { vm.save(entry, name, categoryId.ifEmpty { null }, onDismiss) }
     AppSheet(entry.name, onDismiss) {
         AppTextField(name, { name = it }, stringResource(R.string.item_name), maxLength = 100, autoFocus = true, onImeAction = save)
         Text(stringResource(R.string.history_renameHint), style = MaterialTheme.typography.bodySmall, color = AppTheme.colors.muted)
+        CategorySelect(stringResource(R.string.item_category), stringResource(R.string.item_noCategory), categoryId, catalog) { categoryId = it }
         ErrorText(error)
         SheetActions(start = {
             AppButton(stringResource(R.string.history_remove), { vm.remove(entry, onDismiss) }, variant = ButtonVariant.GHOST, enabled = !pending, textColor = AppTheme.colors.danger)

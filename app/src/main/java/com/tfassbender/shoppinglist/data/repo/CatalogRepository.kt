@@ -3,6 +3,7 @@ package com.tfassbender.shoppinglist.data.repo
 import com.tfassbender.shoppinglist.api.apis.CatalogApi
 import com.tfassbender.shoppinglist.api.models.CatalogDto
 import com.tfassbender.shoppinglist.api.models.CategoryRequest
+import com.tfassbender.shoppinglist.api.models.HistoryCategoryRequest
 import com.tfassbender.shoppinglist.api.models.HistoryEntryDto
 import com.tfassbender.shoppinglist.api.models.OrderRequest
 import com.tfassbender.shoppinglist.api.models.RenameHistoryRequest
@@ -83,6 +84,10 @@ class CatalogRepository(
     /** Renames an entry; if [newName] is already remembered, both are merged. Errors: `INVALID_NAME`. */
     suspend fun renameHistoryItem(spaceId: String, name: String, newName: String): ApiResult<List<HistoryEntry>> =
         historyCall(spaceId) { api.renameHistoryItem(spaceId = spaceId, name = name, renameHistoryRequest = RenameHistoryRequest(newName.trim())) }
+
+    /** Changes the category an entry is placed in automatically (null: none). Errors: `CATEGORY_NOT_FOUND`. */
+    suspend fun setHistoryItemCategory(spaceId: String, name: String, categoryId: String?): ApiResult<List<HistoryEntry>> =
+        historyCall(spaceId) { api.setHistoryItemCategory(spaceId = spaceId, name = name, historyCategoryRequest = HistoryCategoryRequest(categoryId)) }
 
     /** Forgets an entry: no longer suggested, no longer placed automatically. */
     suspend fun removeHistoryItem(spaceId: String, name: String): ApiResult<List<HistoryEntry>> =

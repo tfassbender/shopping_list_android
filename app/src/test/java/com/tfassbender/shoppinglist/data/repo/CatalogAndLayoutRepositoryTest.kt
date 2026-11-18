@@ -153,6 +153,21 @@ class CatalogAndLayoutRepositoryTest {
     }
 
     @Test
+    fun `changing the category of a remembered item updates the cached history`() = runTest {
+        val s = setup()
+        s.engine.updateState("s1") { it.copy(catalog = Catalog(history = listOf(HistoryEntry("Milk", null, null, 2, Instant.EPOCH)))) }
+        server.enqueue(jsonResponse("""[{"name":"Milk","categoryId":"dairy","unit":null,"usageCount":2,"lastUsed":"2026-11-11T10:00:00Z"}]"""))
+
+        assertTrue(s.catalog.setHistoryItemCategory("s1", "Milk", "dairy") is ApiResult.Success)
+
+        val request = server.takeRequest()
+        assertEquals("PUT", request.method)
+        assertEquals("/api/spaces/s1/catalog/history/category?name=Milk", request.path)
+        assertEquals("""{"categoryId":"dairy"}""", request.body.readUtf8())
+        assertEquals("dairy", s.catalog.history("s1").first().single().categoryId)
+    }
+
+    @Test
     fun `remembered shop per list`() = runTest {
         val s = setup()
         assertNull(s.layouts.lastLayout("l1").first())
