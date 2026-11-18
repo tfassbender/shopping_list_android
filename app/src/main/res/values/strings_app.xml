@@ -22,6 +22,4 @@
     <string name="about_creator">Made by Tobias Faßbender</string>
     <string name="about_appSource">Android app on GitHub</string>
     <string name="about_serverSource">Server and web app on GitHub</string>
-    <string name="select_search">Search</string>
-    <string name="select_noMatch">No matches</string>
 </resources>

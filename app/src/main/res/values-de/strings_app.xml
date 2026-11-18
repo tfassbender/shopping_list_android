@@ -21,6 +21,4 @@
     <string name="about_creator">Entwickelt von Tobias Faßbender</string>
     <string name="about_appSource">Android-App auf GitHub</string>
     <string name="about_serverSource">Server und Web-App auf GitHub</string>
-    <string name="select_search">Suchen</string>
-    <string name="select_noMatch">Keine Treffer</string>
 </resources>

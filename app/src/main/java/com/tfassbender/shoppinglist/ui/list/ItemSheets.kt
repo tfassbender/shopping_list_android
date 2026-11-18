@@ -14,12 +14,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -104,25 +102,10 @@ private fun AmountUnitFields(quantity: String, unit: String, units: List<String>
     }
 }
 
-/** The category of an item (add and edit sheets, items used before): searchable, with a color dot. */
+/** The category of an item (add and edit sheets, items used before): searchable, see [CategoryPicker]. */
 @Composable
-fun CategorySelect(label: String, noneLabel: String, value: String, catalog: Catalog?, onChange: (String) -> Unit) {
-    val categories = catalog?.categories.orEmpty()
-    SelectField(
-        label = label,
-        value = value,
-        options = listOf("" to noneLabel) + categories.map { it.id to it.name },
-        onChange = onChange,
-        searchable = true,
-        leading = { id ->
-            val category = categories.firstOrNull { it.id == id }
-            if (category != null) {
-                ColorDot(parseColor(category.color), 12.dp)
-                Spacer(Modifier.width(8.dp))
-            }
-        },
-    )
-}
+fun CategorySelect(label: String, noneLabel: String, value: String, catalog: Catalog?, onChange: (String) -> Unit) =
+    CategoryPicker(label, noneLabel, value, catalog?.categories.orEmpty(), onChange)
 
 /**
  * The sheet behind the + button. "Add another" (or Enter) adds the item and keeps the sheet open, empty
