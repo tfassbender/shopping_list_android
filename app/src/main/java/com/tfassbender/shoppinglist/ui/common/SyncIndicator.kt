@@ -34,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tfassbender.shoppinglist.R
-import com.tfassbender.shoppinglist.data.sync.SyncStatus
 import com.tfassbender.shoppinglist.domain.Category
 import com.tfassbender.shoppinglist.domain.MergeWarning
 import com.tfassbender.shoppinglist.domain.WarningType
@@ -46,14 +45,14 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 /**
- * Header badges (port of the web app's SyncIndicator): "Offline" with the number of unsaved changes,
- * "Saving..." while queued changes are sent, and the ⚠ button for merge notes (unless the user hides them).
+ * Header badges (port of the web app's SyncIndicator): "Offline" with the number of unsaved changes and
+ * the ⚠ button for merge notes (unless the user hides them). Unlike the web app there is no "Saving..."
+ * badge: it flashed up on every checked item (issue #2).
  */
 @Composable
 fun SyncIndicator(compact: Boolean) {
     val container = LocalAppContainer.current
     val online by container.online.collectAsStateWithLifecycle(true)
-    val status by container.syncEngine.status.collectAsStateWithLifecycle()
     val pending by container.syncEngine.pendingCount.collectAsStateWithLifecycle(0)
     val warnings by container.syncEngine.warnings.collectAsStateWithLifecycle(emptyList())
     val user by container.account.user.collectAsStateWithLifecycle(null)
@@ -63,9 +62,6 @@ fun SyncIndicator(compact: Boolean) {
 
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         if (!online) OfflineBadge(pending)
-        if (online && status == SyncStatus.SYNCING && pending > 0) {
-            Badge { Text(stringResource(R.string.offline_saving), fontSize = 15.sp, color = colors.brandInk) }
-        }
         if (showWarnings) {
             val label = stringResource(R.string.warnings_open, warnings.size)
             Box(
@@ -81,16 +77,6 @@ fun SyncIndicator(compact: Boolean) {
         }
     }
     if (open) WarningsSheet(warnings, onDismiss = { open = false })
-}
-
-@Composable
-private fun Badge(content: @Composable () -> Unit) {
-    Box(
-        Modifier
-            .clip(CircleShape)
-            .background(AppTheme.colors.brandInk.copy(alpha = 0.1f))
-            .padding(horizontal = 10.dp, vertical = 2.dp),
-    ) { content() }
 }
 
 /** Compact: "Offline" plus the number of unsaved changes in a bubble; screen readers get the full sentence. */
