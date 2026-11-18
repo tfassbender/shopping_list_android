@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
@@ -56,6 +57,7 @@ import com.tfassbender.shoppinglist.ui.common.ConfirmSheet
 import com.tfassbender.shoppinglist.ui.common.ErrorText
 import com.tfassbender.shoppinglist.ui.common.Fab
 import com.tfassbender.shoppinglist.ui.common.Hint
+import com.tfassbender.shoppinglist.ui.common.LinkText
 import com.tfassbender.shoppinglist.ui.common.ListRow
 import com.tfassbender.shoppinglist.ui.common.Loading
 import com.tfassbender.shoppinglist.ui.common.NameSheet
@@ -236,6 +238,11 @@ fun SettingsScreen() {
                     color = colors.muted,
                     modifier = Modifier.padding(start = 8.dp, top = 24.dp),
                 )
+                // About (issue #10): who made it and where the source code is.
+                val uriHandler = LocalUriHandler.current
+                Text(stringResource(R.string.about_creator), fontSize = 15.sp, color = colors.muted, modifier = Modifier.padding(start = 8.dp))
+                LinkText(stringResource(R.string.about_appSource), { uriHandler.openUri(APP_REPOSITORY) }, Modifier.padding(start = 8.dp))
+                LinkText(stringResource(R.string.about_serverSource), { uriHandler.openUri(SERVER_REPOSITORY) }, Modifier.padding(start = 8.dp))
             }
         }
     }
@@ -282,6 +289,9 @@ fun SettingsScreen() {
         null -> Unit
     }
 }
+
+private const val APP_REPOSITORY = "https://github.com/tfassbender/shopping_list_android"
+private const val SERVER_REPOSITORY = "https://github.com/tfassbender/shopping_list_server"
 
 @Composable
 private fun ValueText(text: String) {

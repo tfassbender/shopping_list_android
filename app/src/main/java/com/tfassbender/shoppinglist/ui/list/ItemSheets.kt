@@ -112,6 +112,7 @@ private fun CategorySelect(label: String, noneLabel: String, value: String, cata
         value = value,
         options = listOf("" to noneLabel) + categories.map { it.id to it.name },
         onChange = onChange,
+        searchable = true,
         leading = { id ->
             val category = categories.firstOrNull { it.id == id }
             if (category != null) {

@@ -216,7 +216,11 @@ fun AppTextField(
     }
 }
 
-/** A choice from a short list, shown like a text field with a dropdown (the web app's `<select>`). */
+/**
+ * A choice from a list, shown like a text field with a dropdown (the web app's `<select>`). [searchable]
+ * puts a search field at the top of the dropdown that filters the options by their text (long lists like
+ * the categories).
+ */
 @Composable
 fun <T> SelectField(
     label: String,
@@ -225,9 +229,11 @@ fun <T> SelectField(
     onChange: (T) -> Unit,
     modifier: Modifier = Modifier,
     leading: (@Composable (T) -> Unit)? = null,
+    searchable: Boolean = false,
 ) {
     val colors = AppTheme.colors
     var open by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
     val current = options.firstOrNull { it.first == value }?.second.orEmpty()
     Column(modifier) {
         Text(label, style = MaterialTheme.typography.bodySmall, color = colors.muted, modifier = Modifier.padding(bottom = 4.dp))
@@ -239,7 +245,10 @@ fun <T> SelectField(
                     .clip(RoundedCornerShape(8.dp))
                     .background(colors.raised)
                     .border(1.dp, colors.line, RoundedCornerShape(8.dp))
-                    .clickable(role = Role.DropdownList) { open = true }
+                    .clickable(role = Role.DropdownList) {
+                        query = ""
+                        open = true
+                    }
                     .semantics { contentDescription = "$label: $current" }
                     .padding(start = 12.dp, end = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -249,7 +258,27 @@ fun <T> SelectField(
                 Icon(Icons.Filled.ArrowDropDown, contentDescription = null, tint = colors.muted)
             }
             DropdownMenu(expanded = open, onDismissRequest = { open = false }, containerColor = colors.surface) {
-                options.forEach { (option, text) ->
+                val shown = if (searchable && query.isNotBlank()) options.filter { it.second.contains(query.trim(), ignoreCase = true) } else options
+                if (searchable) {
+                    AppTextField(
+                        query,
+                        { query = it },
+                        stringResource(R.string.select_search),
+                        modifier = Modifier
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                            .widthIn(min = 240.dp),
+                        imeAction = ImeAction.Search,
+                        onImeAction = {
+                            // Enter picks the only match.
+                            shown.singleOrNull()?.let {
+                                open = false
+                                onChange(it.first)
+                            }
+                        },
+                    )
+                    if (shown.isEmpty()) Text(stringResource(R.string.select_noMatch), color = colors.muted, modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp))
+                }
+                shown.forEach { (option, text) ->
                     DropdownMenuItem(
                         text = { Text(text, color = colors.fg, fontWeight = if (option == value) FontWeight.SemiBold else FontWeight.Normal) },
                         leadingIcon = leading?.let { { it(option) } },
