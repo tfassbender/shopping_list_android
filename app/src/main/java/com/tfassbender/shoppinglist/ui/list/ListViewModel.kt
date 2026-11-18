@@ -10,6 +10,7 @@ import com.tfassbender.shoppinglist.data.repo.InvalidInputException
 import com.tfassbender.shoppinglist.domain.Catalog
 import com.tfassbender.shoppinglist.domain.Item
 import com.tfassbender.shoppinglist.domain.ItemField
+import com.tfassbender.shoppinglist.domain.ItemOrder
 import com.tfassbender.shoppinglist.domain.ItemSorter
 import com.tfassbender.shoppinglist.domain.LayoutMode
 import com.tfassbender.shoppinglist.domain.ShopLayout
@@ -64,8 +65,10 @@ class ListViewModel(private val container: AppContainer, val spaceId: String, va
         container.catalog.catalog(spaceId),
         container.layouts.layouts(spaceId),
         container.layouts.lastLayout(listId),
-        combine(movedToEnd, categoryHeaders) { moved, headers -> moved to headers },
-    ) { (spaceLists, list, lost), catalog, layouts, chosenLayoutId, (moved, headers) ->
+        combine(movedToEnd, categoryHeaders, container.account.user) { moved, headers, user ->
+            Triple(moved, headers, user.user?.settings?.itemOrder ?: ItemOrder.ADDED)
+        },
+    ) { (spaceLists, list, lost), catalog, layouts, chosenLayoutId, (moved, headers, itemOrder) ->
         when {
             list == null && lost != null -> ListUiState(ListUiState.LoadState.SPACE_GONE, lostChanges = lost)
             spaceLists == null -> ListUiState(ListUiState.LoadState.LOADING)
@@ -77,7 +80,7 @@ class ListViewModel(private val container: AppContainer, val spaceId: String, va
                 // Without a shop the list is exactly in the order of adding - no category groups, which
                 // would look like a shop's sorting.
                 val grouped = if (layout != null) {
-                    groupSorted(ItemSorter.sort(list.items, layout, categories, catalog?.usage.orEmpty(), false), categories, layout.mode, moved)
+                    groupSorted(ItemSorter.sort(list.items, layout, categories, false, itemOrder), categories, layout.mode, moved)
                 } else {
                     groupSorted(ItemSorter.byAdding(list.items, false), categories, LayoutMode.ITEMS, moved)
                 }

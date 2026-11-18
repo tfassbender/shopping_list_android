@@ -87,7 +87,7 @@ class CatalogAndLayoutRepositoryTest {
         assertEquals(listOf("veg", "dairy"), s.catalog.catalog("s1").first()!!.categories.map { it.id })
 
         val aldi = s.layouts.sortedItems("s1", "l1", "aldi", checkedToEnd = false).first()
-        // dairy first; Butter (most bought) before Milk
+        // dairy first; Butter before Milk (added at the same time, so by name)
         assertEquals(listOf("Butter", "Milk", "Carrots"), aldi.map { it.name })
 
         val rewe = s.layouts.sortedItems("s1", "l1", "rewe", checkedToEnd = false).first()

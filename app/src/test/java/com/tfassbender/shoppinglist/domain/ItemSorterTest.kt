@@ -26,9 +26,9 @@ class ItemSorterTest {
     private fun sortedNames(
         items: List<Item>,
         layout: ShopLayout,
-        usage: Map<String, Int> = emptyMap(),
         checkedToEnd: Boolean = false,
-    ) = ItemSorter.sort(items, layout, categories, usage, checkedToEnd).map { it.name }
+        itemOrder: ItemOrder = ItemOrder.ADDED,
+    ) = ItemSorter.sort(items, layout, categories, checkedToEnd, itemOrder).map { it.name }
 
     // --- category mode ---
 
@@ -68,7 +68,9 @@ class ItemSorterTest {
     @Test
     fun `items unknown to the layout come last, sorted by the remaining rules`() {
         val items = listOf(item("Zucchini"), item("Avocado"), item("Bread"))
-        assertEquals(listOf("Bread", "Avocado", "Zucchini"), sortedNames(items, layout(LayoutMode.ITEMS, items = listOf("Bread"))))
+        val layout = layout(LayoutMode.ITEMS, items = listOf("Bread"))
+        assertEquals(listOf("Bread", "Zucchini", "Avocado"), sortedNames(items, layout))
+        assertEquals(listOf("Bread", "Avocado", "Zucchini"), sortedNames(items, layout, itemOrder = ItemOrder.ALPHABETICAL))
     }
 
     @Test
@@ -81,23 +83,29 @@ class ItemSorterTest {
     // --- tie breakers ---
 
     @Test
-    fun `most bought first within the same layout position`() {
-        val usage = mapOf("cheese" to 1, "butter" to 2)
-        val items = listOf(item("Cheese", dairy), item("Butter", dairy), item("Ayran", dairy), item("Quark", dairy))
-        assertEquals(listOf("Butter", "Cheese", "Ayran", "Quark"), sortedNames(items, layout(categories = listOf(dairy)), usage))
+    fun `order of adding within the same layout position by default`() {
+        val items = listOf(item("Quark", dairy), item("Butter", dairy), item("Ayran", dairy))
+        assertEquals(listOf("Quark", "Butter", "Ayran"), sortedNames(items.reversed(), layout(categories = listOf(dairy))))
     }
 
     @Test
-    fun `name is the last criterion, case-insensitive`() {
+    fun `alphabetically within the same layout position if the user wants that, case-insensitive`() {
         val items = listOf(item("banana"), item("Apple"), item("cherry"))
-        assertEquals(listOf("Apple", "banana", "cherry"), sortedNames(items, layout()))
+        assertEquals(listOf("Apple", "banana", "cherry"), sortedNames(items, layout(), itemOrder = ItemOrder.ALPHABETICAL))
+    }
+
+    @Test
+    fun `checking an item never moves it`() {
+        // Regression for server issue #8: the usage count (raised by checking) used to be a sort key.
+        val items = listOf(item("Cheese", dairy), item("Butter", dairy, checked = true))
+        assertEquals(listOf("Cheese", "Butter"), sortedNames(items, layout(categories = listOf(dairy))))
     }
 
     @Test
     fun `same name keeps creation order (stable)`() {
         val first = item("Milk", dairy).copy(id = "first")
         val second = item("Milk", dairy).copy(id = "second")
-        val result = ItemSorter.sort(listOf(second, first), layout(), categories, emptyMap(), false)
+        val result = ItemSorter.sort(listOf(second, first), layout(), categories, false)
         assertEquals(listOf("first", "second"), result.map { it.id })
     }
 
@@ -110,17 +118,17 @@ class ItemSorterTest {
 
     @Test
     fun `checked items go to the end, both groups sorted by the layout`() {
-        assertEquals(listOf("Cheese", "Milk", "Bread", "Carrots"), sortedNames(checkedItems, checkedLayout, checkedToEnd = true))
+        assertEquals(listOf("Milk", "Cheese", "Bread", "Carrots"), sortedNames(checkedItems, checkedLayout, checkedToEnd = true))
     }
 
     @Test
     fun `without the setting checked items stay in place`() {
-        assertEquals(listOf("Bread", "Cheese", "Milk", "Carrots"), sortedNames(checkedItems, checkedLayout, checkedToEnd = false))
+        assertEquals(listOf("Bread", "Milk", "Cheese", "Carrots"), sortedNames(checkedItems, checkedLayout, checkedToEnd = false))
     }
 
     @Test
     fun `empty list sorts to empty`() {
-        assertTrue(ItemSorter.sort(emptyList(), layout(), categories, emptyMap(), true).isEmpty())
+        assertTrue(ItemSorter.sort(emptyList(), layout(), categories, true).isEmpty())
     }
 
     // --- app only ---

@@ -8,26 +8,28 @@ package com.tfassbender.shoppinglist.domain
  * 2. position in the layout – the item's category (mode CATEGORIES) or the item itself (mode ITEMS);
  *    categories missing in the layout follow in the space's category order, items without category or
  *    unknown to the layout come last,
- * 3. most bought first (item history),
- * 4. name (case-insensitive), then creation time for a stable order.
+ * 3. the user's [ItemOrder]: order of adding (creation time, then name) or name (case-insensitive, then
+ *    creation time). Deliberately nothing that changes when an item is checked (like "most bought"), so
+ *    checking an item never moves it.
  */
 object ItemSorter {
 
-    /** [categories] in the space's order; [usage] keyed by normalized name ([normalizeName]), from [Catalog.usage]. */
+    /** [categories] in the space's order. */
     fun sort(
         items: List<Item>,
         layout: ShopLayout,
         categories: List<Category>,
-        usage: Map<String, Int>,
         checkedToEnd: Boolean,
+        itemOrder: ItemOrder = ItemOrder.ADDED,
     ): List<Item> {
         val position = positionFunction(layout, categories)
         val comparator = compareBy<Item> { if (checkedToEnd && it.checked) 1 else 0 }
             .thenBy(position)
-            .thenByDescending { usage[normalizeName(it.name)] ?: 0 }
-            .thenBy { it.name.lowercase() }
-            .thenBy { it.createdAt }
-        return items.sortedWith(comparator)
+        val withinPosition = when (itemOrder) {
+            ItemOrder.ADDED -> comparator.thenBy { it.createdAt }.thenBy { it.name.lowercase() }
+            ItemOrder.ALPHABETICAL -> comparator.thenBy { it.name.lowercase() }.thenBy { it.createdAt }
+        }
+        return items.sortedWith(withinPosition)
     }
 
     private fun positionFunction(layout: ShopLayout, categories: List<Category>): (Item) -> Int = when (layout.mode) {

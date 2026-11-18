@@ -21,6 +21,7 @@ import com.tfassbender.shoppinglist.domain.CreatedInvite
 import com.tfassbender.shoppinglist.domain.HistoryEntry
 import com.tfassbender.shoppinglist.domain.Invite
 import com.tfassbender.shoppinglist.domain.InvitePreview
+import com.tfassbender.shoppinglist.domain.ItemOrder
 import com.tfassbender.shoppinglist.domain.LayoutMode
 import com.tfassbender.shoppinglist.domain.Member
 import com.tfassbender.shoppinglist.domain.Role
@@ -31,6 +32,7 @@ import com.tfassbender.shoppinglist.domain.Theme
 import com.tfassbender.shoppinglist.domain.TokenScope
 import com.tfassbender.shoppinglist.domain.User
 import com.tfassbender.shoppinglist.domain.UserSettings
+import com.tfassbender.shoppinglist.api.models.ItemOrder as ItemOrderDto
 import com.tfassbender.shoppinglist.api.models.LayoutMode as LayoutModeDto
 import com.tfassbender.shoppinglist.api.models.Role as RoleDto
 import com.tfassbender.shoppinglist.api.models.ThemePreference as ThemeDto
@@ -40,9 +42,16 @@ import com.tfassbender.shoppinglist.api.models.TokenScope as TokenScopeDto
 
 fun UserDto.toDomain() = User(id, email, displayName, emailVerified, settings.toDomain())
 
-fun SettingsDto.toDomain() = UserSettings(language, Theme.valueOf(theme.name), checkedItemsToEnd, ignoreMergeWarnings)
+fun SettingsDto.toDomain() = UserSettings(
+    language,
+    Theme.valueOf(theme.name),
+    checkedItemsToEnd,
+    ignoreMergeWarnings,
+    // missing from older servers: order of adding
+    itemOrder?.let { ItemOrder.valueOf(it.name) } ?: ItemOrder.ADDED,
+)
 
-fun UserSettings.toDto() = SettingsDto(language, ThemeDto.valueOf(theme.name), checkedItemsToEnd, ignoreMergeWarnings)
+fun UserSettings.toDto() = SettingsDto(language, ThemeDto.valueOf(theme.name), checkedItemsToEnd, ignoreMergeWarnings, ItemOrderDto.valueOf(itemOrder.name))
 
 fun SpaceDto.toDomain() = Space(id, name, myRole.toDomain(), memberCount, createdAt.toInstant())
 

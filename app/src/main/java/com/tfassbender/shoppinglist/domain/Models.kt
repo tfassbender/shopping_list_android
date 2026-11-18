@@ -14,6 +14,9 @@ enum class Theme { SYSTEM, LIGHT, DARK }
 enum class TokenScope { READ, FULL }
 enum class LayoutMode { CATEGORIES, ITEMS }
 
+/** Order of the items within a category of a list sorted for a shop (user setting). */
+enum class ItemOrder { ADDED, ALPHABETICAL }
+
 @Serializable
 data class UserSettings(
     /** `en` or `de`. */
@@ -21,6 +24,7 @@ data class UserSettings(
     val theme: Theme = Theme.SYSTEM,
     val checkedItemsToEnd: Boolean = false,
     val ignoreMergeWarnings: Boolean = false,
+    val itemOrder: ItemOrder = ItemOrder.ADDED,
 )
 
 @Serializable

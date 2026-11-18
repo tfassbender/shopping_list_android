@@ -16,6 +16,7 @@ import com.tfassbender.shoppinglist.data.remote.toDomain
 import com.tfassbender.shoppinglist.data.remote.toDto
 import com.tfassbender.shoppinglist.data.sync.SyncEngine
 import com.tfassbender.shoppinglist.domain.Item
+import com.tfassbender.shoppinglist.domain.ItemOrder
 import com.tfassbender.shoppinglist.domain.ItemSorter
 import com.tfassbender.shoppinglist.domain.LayoutMode
 import com.tfassbender.shoppinglist.domain.ShopLayout
@@ -87,16 +88,17 @@ class LayoutRepository(
 
     /**
      * The items of a list sorted for walking through [layoutId]'s shop (null or unknown layout: order of
-     * adding). Computed on the device, so it works offline. [checkedToEnd] is the user's setting.
+     * adding). Computed on the device, so it works offline. [checkedToEnd] and [itemOrder] are the user's
+     * settings.
      */
-    fun sortedItems(spaceId: String, listId: String, layoutId: String?, checkedToEnd: Boolean): Flow<List<Item>> =
+    fun sortedItems(spaceId: String, listId: String, layoutId: String?, checkedToEnd: Boolean, itemOrder: ItemOrder = ItemOrder.ADDED): Flow<List<Item>> =
         combine(engine.lists(spaceId), engine.state(spaceId)) { lists, state ->
             val items = lists[listId]?.items.orEmpty()
             val layout = state.layouts.firstOrNull { it.id == layoutId }
             if (layout == null) {
                 ItemSorter.byAdding(items, checkedToEnd)
             } else {
-                ItemSorter.sort(items, layout, state.catalog?.categories.orEmpty(), state.catalog?.usage.orEmpty(), checkedToEnd)
+                ItemSorter.sort(items, layout, state.catalog?.categories.orEmpty(), checkedToEnd, itemOrder)
             }
         }.distinctUntilChanged()
 

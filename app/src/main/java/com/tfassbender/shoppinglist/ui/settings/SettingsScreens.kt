@@ -43,6 +43,7 @@ import com.tfassbender.shoppinglist.data.remote.ApiResult
 import com.tfassbender.shoppinglist.data.remote.displayAddress
 import com.tfassbender.shoppinglist.domain.ApiToken
 import com.tfassbender.shoppinglist.domain.CreatedApiToken
+import com.tfassbender.shoppinglist.domain.ItemOrder
 import com.tfassbender.shoppinglist.domain.Theme
 import com.tfassbender.shoppinglist.domain.TokenScope
 import com.tfassbender.shoppinglist.domain.UserSettings
@@ -202,6 +203,17 @@ fun SettingsScreen() {
                         enabled = enabled,
                     )
                 }
+                SettingBlock(stringResource(R.string.settings_itemOrder), stringResource(R.string.settings_itemOrderHint)) {
+                    Segmented(
+                        listOf(
+                            ItemOrder.ADDED to stringResource(R.string.settings_itemOrder_ADDED),
+                            ItemOrder.ALPHABETICAL to stringResource(R.string.settings_itemOrder_ALPHABETICAL),
+                        ),
+                        settings.itemOrder,
+                        { vm.change(settings.copy(itemOrder = it)) },
+                        enabled = enabled,
+                    )
+                }
                 // Stored as "ignore merge warnings" - the switch shows the positive form.
                 SwitchRow(stringResource(R.string.settings_mergeNotes), stringResource(R.string.settings_mergeNotesHint), !settings.ignoreMergeWarnings, enabled) {
                     vm.change(settings.copy(ignoreMergeWarnings = !it))
@@ -299,10 +311,13 @@ private fun ValueText(text: String) {
 }
 
 @Composable
-private fun SettingBlock(title: String, content: @Composable () -> Unit) {
+private fun SettingBlock(title: String, hint: String? = null, content: @Composable () -> Unit) {
     Column {
         Column(Modifier.padding(horizontal = 8.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title)
+            Column {
+                Text(title)
+                if (hint != null) Text(hint, style = MaterialTheme.typography.bodySmall, color = AppTheme.colors.muted)
+            }
             content()
         }
         HorizontalDivider(color = AppTheme.colors.line)
