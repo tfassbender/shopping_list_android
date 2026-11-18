@@ -71,6 +71,8 @@
     <string name="item_noUnit">–</string>
     <string name="item_note">Notiz</string>
     <string name="item_category">Kategorie</string>
+    <string name="category_search">Kategorie suchen</string>
+    <string name="category_noMatch">Keine passende Kategorie</string>
     <string name="item_noCategory">Keine Kategorie</string>
     <string name="list_section_other">Sonstiges</string>
     <string name="list_section_checked">Erledigt</string>
@@ -103,6 +105,7 @@
     <string name="layouts_modeHint_ITEMS">Genaue Reihenfolge der Produkte; unbekannte Artikel kommen ans Ende.</string>
     <string name="layouts_sortBy">Sortierung</string>
     <string name="layouts_dragHint">Zieh die Kategorien in die Reihenfolge des Geschäfts.</string>
+    <string name="layouts_categoryInShop">%1$s in diesem Geschäft</string>
     <string name="layouts_editCategories">Kategorien bearbeiten</string>
     <string name="layouts_itemsHint">Zieh die Artikel in die Reihenfolge des Geschäfts.</string>
     <string name="layouts_newEntry">Artikel hinzufügen</string>
@@ -166,6 +169,10 @@
     <string name="settings_theme_SYSTEM">Wie das System</string>
     <string name="settings_theme_LIGHT">Hell</string>
     <string name="settings_theme_DARK">Dunkel</string>
+    <string name="settings_itemOrder">Artikel innerhalb einer Kategorie</string>
+    <string name="settings_itemOrderHint">In Listen, die für einen Laden sortiert sind</string>
+    <string name="settings_itemOrder_ADDED">Reihenfolge des Hinzufügens</string>
+    <string name="settings_itemOrder_ALPHABETICAL">Alphabetisch</string>
     <string name="settings_language">Sprache</string>
     <string name="settings_language_en">English</string>
     <string name="settings_language_de">Deutsch</string>
@@ -300,6 +307,9 @@
     <string name="settings_logoutEverywhereButton">Andere abmelden</string>
     <string name="settings_deleteAccountTitle">Konto löschen?</string>
     <string name="settings_version">Version %1$s</string>
+    <string name="settings_createdBy">Entwickelt von %1$s</string>
+    <string name="settings_sourceCode">Quellcode auf GitHub</string>
+    <string name="settings_androidApp">Android-App auf GitHub</string>
     <string name="tokens_empty">Noch keine Tokens. Leg eines mit + an.</string>
     <string name="tokens_revokeTitle">\"%1$s\" widerrufen?</string>
     <string name="tokens_copyTitle">Kopiere dein Token</string>
@@ -313,6 +323,7 @@
     <string name="history_remove">Entfernen</string>
     <string name="error_HISTORY_ENTRY_NOT_FOUND">Dieser Artikel wurde inzwischen entfernt.</string>
     <string name="error_unknown">Etwas ist schiefgelaufen. Bitte versuch es noch einmal.</string>
+    <string name="error_TOO_MANY_REQUESTS">Zu viele Versuche. Bitte warte eine Weile und versuche es dann erneut.</string>
     <string name="error_NETWORK_ERROR">Server nicht erreichbar. Prüfe deine Verbindung.</string>
     <string name="error_INVALID_EMAIL">Bitte gib eine gültige E-Mail-Adresse ein.</string>
     <string name="error_INVALID_DISPLAY_NAME">Der Anzeigename muss 1-40 Zeichen lang sein.</string>

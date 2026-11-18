@@ -58,6 +58,7 @@ fun errorMessageRes(code: String?): Int? = when (code) {
     "TOO_MANY_UNITS" -> R.string.error_TOO_MANY_UNITS
     "INVALID_CHANGE" -> R.string.error_INVALID_CHANGE
     "BATCH_TOO_LARGE" -> R.string.error_BATCH_TOO_LARGE
+    "TOO_MANY_REQUESTS" -> R.string.error_TOO_MANY_REQUESTS
     "INTERNAL_ERROR" -> R.string.error_INTERNAL_ERROR
     else -> null
 }

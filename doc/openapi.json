@@ -414,6 +414,18 @@
           }
         }
       },
+      "HistoryCategoryRequest": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Category the item is placed in automatically from now on; null for none"
+          }
+        }
+      },
       "HistoryEntryDto": {
         "type": "object",
         "required": [
@@ -571,6 +583,13 @@
           "CATEGORY"
         ]
       },
+      "ItemOrder": {
+        "type": "string",
+        "enum": [
+          "ADDED",
+          "ALPHABETICAL"
+        ]
+      },
       "LayoutDto": {
         "type": "object",
         "required": [
@@ -612,6 +631,13 @@
           },
           "createdAt": {
             "$ref": "#/components/schemas/Instant"
+          },
+          "disabledCategories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Categories the shop doesn't have (mode CATEGORIES): their items are sorted to the end"
           }
         }
       },
@@ -967,6 +993,21 @@
           },
           "ignoreMergeWarnings": {
             "type": "boolean"
+          },
+          "itemOrder": {
+            "description": "Order of the items within a category of a sorted list; omitted on update: unchanged",
+            "type": [
+              "string",
+              "null"
+            ],
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ItemOrder"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
@@ -2488,6 +2529,78 @@
         ]
       }
     },
+    "/api/spaces/{spaceId}/catalog/history/category": {
+      "put": {
+        "summary": "Change the category of an item of the history (used for automatic placement); returns the history",
+        "operationId": "setHistoryItemCategory",
+        "tags": [
+          "Catalog"
+        ],
+        "parameters": [
+          {
+            "name": "spaceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The item name (case-insensitive)",
+            "required": true,
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HistoryCategoryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HistoryEntryDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not Authorized"
+          },
+          "403": {
+            "description": "Not Allowed"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": [
+              "user"
+            ]
+          }
+        ]
+      }
+    },
     "/api/spaces/{spaceId}/catalog/suggestions": {
       "get": {
         "summary": "Autocomplete from the item history: prefix matches, most used first, with last category/unit",
@@ -3233,6 +3346,71 @@
         "responses": {
           "201": {
             "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LayoutDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not Authorized"
+          },
+          "403": {
+            "description": "Not Allowed"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": [
+              "user"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/spaces/{spaceId}/layouts/{layoutId}/disabled-categories": {
+      "put": {
+        "summary": "Set the categories the shop doesn't have (complete set of category ids); their items are sorted to the end",
+        "operationId": "setLayoutDisabledCategories",
+        "tags": [
+          "Layouts"
+        ],
+        "parameters": [
+          {
+            "name": "layoutId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "spaceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntriesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {

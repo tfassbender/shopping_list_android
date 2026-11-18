@@ -71,6 +71,8 @@
     <string name="item_noUnit">–</string>
     <string name="item_note">Note</string>
     <string name="item_category">Category</string>
+    <string name="category_search">Search category</string>
+    <string name="category_noMatch">No matching category</string>
     <string name="item_noCategory">No category</string>
     <string name="list_section_other">Other</string>
     <string name="list_section_checked">Checked</string>
@@ -103,6 +105,7 @@
     <string name="layouts_modeHint_ITEMS">Exact order of products; unknown items go to the end.</string>
     <string name="layouts_sortBy">Sort</string>
     <string name="layouts_dragHint">Drag the categories into the order of the shop.</string>
+    <string name="layouts_categoryInShop">%1$s in this shop</string>
     <string name="layouts_editCategories">Edit categories</string>
     <string name="layouts_itemsHint">Drag the items into the order of the shop.</string>
     <string name="layouts_newEntry">Add item</string>
@@ -166,6 +169,10 @@
     <string name="settings_theme_SYSTEM">Like the system</string>
     <string name="settings_theme_LIGHT">Light</string>
     <string name="settings_theme_DARK">Dark</string>
+    <string name="settings_itemOrder">Items within a category</string>
+    <string name="settings_itemOrderHint">In lists sorted for a shop</string>
+    <string name="settings_itemOrder_ADDED">Order of adding</string>
+    <string name="settings_itemOrder_ALPHABETICAL">Alphabetical</string>
     <string name="settings_language">Language</string>
     <string name="settings_language_en">English</string>
     <string name="settings_language_de">Deutsch</string>
@@ -300,6 +307,9 @@
     <string name="settings_logoutEverywhereButton">Log out others</string>
     <string name="settings_deleteAccountTitle">Delete your account?</string>
     <string name="settings_version">version %1$s</string>
+    <string name="settings_createdBy">Made by %1$s</string>
+    <string name="settings_sourceCode">Source code on GitHub</string>
+    <string name="settings_androidApp">Android app on GitHub</string>
     <string name="tokens_empty">No tokens yet. Create one with +.</string>
     <string name="tokens_revokeTitle">Revoke \"%1$s\"?</string>
     <string name="tokens_copyTitle">Copy your token</string>
@@ -313,6 +323,7 @@
     <string name="history_remove">Remove</string>
     <string name="error_HISTORY_ENTRY_NOT_FOUND">This item was removed in the meantime.</string>
     <string name="error_unknown">Something went wrong. Please try again.</string>
+    <string name="error_TOO_MANY_REQUESTS">Too many attempts. Please wait a while and try again.</string>
     <string name="error_NETWORK_ERROR">Server not reachable. Check your connection.</string>
     <string name="error_INVALID_EMAIL">Please enter a valid email address.</string>
     <string name="error_INVALID_DISPLAY_NAME">The display name must be 1-40 characters.</string>
