@@ -2,6 +2,7 @@ package com.tfassbender.shoppinglist.ui.space
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -31,9 +32,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -148,6 +153,26 @@ fun categoriesInLayoutOrder(layout: ShopLayout, categories: List<Category>): Lis
     return layout.categoryOrder.mapNotNull { byId[it] } + categories.filterNot { it.id in layout.categoryOrder }
 }
 
+/**
+ * The editor shows the switched-off categories at the end. Only shown there: the saved order keeps their
+ * place, so a category switched on again returns to where it was.
+ */
+fun categoriesForEditor(layout: ShopLayout, categories: List<Category>): List<Category> {
+    val (on, off) = categoriesInLayoutOrder(layout, categories).partition { it.id !in layout.disabledCategories }
+    return on + off
+}
+
+/**
+ * Turns an order dragged in the editor (switched-off categories shown last) back into the saved order: the
+ * switched-on categories take the slots of switched-on ones in the saved order, the switched-off ones keep
+ * theirs.
+ */
+fun savedOrderAfterDrag(savedOrder: List<String>, draggedOrder: List<String>, disabled: Set<String>): List<String> {
+    val on = ArrayDeque(draggedOrder.filterNot { it in disabled })
+    val off = ArrayDeque(draggedOrder.filter { it in disabled })
+    return savedOrder.map { id -> (if (id in disabled) off.removeFirstOrNull() else on.removeFirstOrNull()) ?: id }
+}
+
 class LayoutEditorViewModel(private val container: AppContainer, private val spaceId: String, private val layoutId: String) : ActionViewModel() {
     private val repo = container.layouts
 
@@ -170,7 +195,19 @@ class LayoutEditorViewModel(private val container: AppContainer, private val spa
 
     fun setMode(layout: ShopLayout, mode: LayoutMode) = optimistic(layout.copy(mode = mode)) { repo.update(spaceId, layoutId, layout.name, mode) }
 
-    fun setCategoryOrder(layout: ShopLayout, ids: List<String>) = optimistic(layout.copy(categoryOrder = ids)) { repo.setCategoryOrder(spaceId, layoutId, ids) }
+    /** [dragged]: the order as shown in the editor (switched-off categories last). */
+    fun setCategoryOrder(layout: ShopLayout, categories: List<Category>, dragged: List<String>) {
+        val saved = categoriesInLayoutOrder(layout, categories).map { it.id }
+        val ids = savedOrderAfterDrag(saved, dragged, layout.disabledCategories.toSet())
+        optimistic(layout.copy(categoryOrder = ids)) { repo.setCategoryOrder(spaceId, layoutId, ids) }
+    }
+
+    /** Switches a category on or off for this shop; the items of switched-off ones go to the end. */
+    fun setCategoryInShop(layout: ShopLayout, categoryId: String, inShop: Boolean) {
+        val others = layout.disabledCategories - categoryId
+        val disabled = if (inShop) others else others + categoryId
+        optimistic(layout.copy(disabledCategories = disabled)) { repo.setDisabledCategories(spaceId, layoutId, disabled) }
+    }
 
     fun setItemOrder(layout: ShopLayout, names: List<String>) = optimistic(layout.copy(itemOrder = names)) { repo.setItemOrder(spaceId, layoutId, names) }
 
@@ -224,17 +261,26 @@ fun LayoutEditorScreen(spaceId: String, layoutId: String) {
                     if (current.mode == LayoutMode.CATEGORIES) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(stringResource(R.string.layouts_dragHint), style = MaterialTheme.typography.bodySmall, color = AppTheme.colors.muted)
+                            Text(stringResource(R.string.layouts_categoryInShopHint), style = MaterialTheme.typography.bodySmall, color = AppTheme.colors.muted)
+                            val categories = catalog?.categories.orEmpty()
                             SortableColumn(
-                                items = categoriesInLayoutOrder(current, catalog?.categories.orEmpty()),
+                                items = categoriesForEditor(current, categories),
                                 key = { it.id },
                                 label = { it.name },
-                                onReorder = { vm.setCategoryOrder(current, it) },
+                                onReorder = { vm.setCategoryOrder(current, categories, it) },
                                 enabled = enabled,
                             ) { category ->
+                                val inShop = category.id !in current.disabledCategories
+                                val switchLabel = stringResource(R.string.layouts_categoryInShop, category.name)
                                 Row(Modifier.heightIn(min = 48.dp).padding(end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    ColorDot(parseColor(category.color), 12.dp)
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(category.name)
+                                    Row(Modifier.weight(1f).alpha(if (inShop) 1f else 0.45f), verticalAlignment = Alignment.CenterVertically) {
+                                        ColorDot(parseColor(category.color), 12.dp)
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(category.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    }
+                                    Box(Modifier.semantics { contentDescription = switchLabel }) {
+                                        AppSwitch(inShop, { vm.setCategoryInShop(current, category.id, it) }, enabled)
+                                    }
                                 }
                             }
                             AppButton(

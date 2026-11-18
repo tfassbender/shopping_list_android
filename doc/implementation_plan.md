@@ -306,3 +306,10 @@ Server-side work the app depends on or benefits from (all four fixed on the serv
 2. [#2](https://github.com/tfassbender/shopping_list_server/issues/2) Android App Links (`/.well-known/assetlinks.json`) – served; the app side is still open (see "Later").
 3. [#3](https://github.com/tfassbender/shopping_list_server/issues/3) Personal favorites in the sync pull – obsolete: favorites were removed on 2026-11-12.
 4. [#4](https://github.com/tfassbender/shopping_list_server/issues/4) OpenAPI response schemas – done; the fetch script's patches are gone.
+
+Features of the web app followed by the app (app issue #4, 2026-11-18):
+- [#5](https://github.com/tfassbender/shopping_list_server/issues/5) Category of an item used before – editable in "Items used before".
+- [#6](https://github.com/tfassbender/shopping_list_server/issues/6) Category selection with a search field – `CategoryPicker`.
+- [#7](https://github.com/tfassbender/shopping_list_server/issues/7) Categories switched off per shop – `ShopLayout.disabledCategories`, sorted last (`ItemSorter`), greyed out in the picker, switches in the shop editor.
+- [#8](https://github.com/tfassbender/shopping_list_server/issues/8) Checking no longer moves an item – item order within a category is the user setting `itemOrder`.
+- [#10](https://github.com/tfassbender/shopping_list_server/issues/10) Creator and GitHub links at the bottom of the settings.

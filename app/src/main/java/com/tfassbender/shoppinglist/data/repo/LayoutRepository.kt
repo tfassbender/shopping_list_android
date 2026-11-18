@@ -68,6 +68,10 @@ class LayoutRepository(
     suspend fun setCategoryOrder(spaceId: String, layoutId: String, categoryIds: List<String>): ApiResult<ShopLayout> =
         upsert(spaceId) { api.setLayoutCategoryOrder(layoutId = layoutId, spaceId = spaceId, entriesRequest = EntriesRequest(categoryIds)) }
 
+    /** Mode CATEGORIES: the complete set of categories the shop doesn't have (their items go to the end). */
+    suspend fun setDisabledCategories(spaceId: String, layoutId: String, categoryIds: List<String>): ApiResult<ShopLayout> =
+        upsert(spaceId) { api.setLayoutDisabledCategories(layoutId = layoutId, spaceId = spaceId, entriesRequest = EntriesRequest(categoryIds)) }
+
     /** Mode ITEMS: the complete new order of item names (case-insensitive, unique). Errors: `INVALID_ORDER`. */
     suspend fun setItemOrder(spaceId: String, layoutId: String, itemNames: List<String>): ApiResult<ShopLayout> =
         upsert(spaceId) { api.setLayoutItemOrder(layoutId = layoutId, spaceId = spaceId, entriesRequest = EntriesRequest(itemNames)) }

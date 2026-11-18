@@ -162,6 +162,7 @@ fun ListScreen(spaceId: String, listId: String) {
     when (sheet) {
         ListSheet.ADD -> AddItemSheet(
             catalog = ui.catalog,
+            inactiveCategories = ui.layout?.inactiveCategories.orEmpty(),
             suggestions = vm::suggestions,
             onAdd = vm::addItem,
             onDismiss = { sheet = null },
@@ -211,6 +212,7 @@ fun ListScreen(spaceId: String, listId: String) {
         ItemEditorSheet(
             item = editing,
             catalog = ui.catalog,
+            inactiveCategories = ui.layout?.inactiveCategories.orEmpty(),
             onSave = { changes -> vm.editItem(editing.id, changes) },
             onDelete = { vm.deleteItem(editing.id) },
             onDismiss = { editingId = null },

@@ -105,6 +105,7 @@
     <string name="layouts_modeHint_ITEMS">Genaue Reihenfolge der Produkte; unbekannte Artikel kommen ans Ende.</string>
     <string name="layouts_sortBy">Sortierung</string>
     <string name="layouts_dragHint">Zieh die Kategorien in die Reihenfolge des Geschäfts.</string>
+    <string name="layouts_categoryInShopHint">Schalte Kategorien aus, die es in diesem Geschäft nicht gibt - ihre Artikel kommen ans Ende der Liste.</string>
     <string name="layouts_categoryInShop">%1$s in diesem Geschäft</string>
     <string name="layouts_editCategories">Kategorien bearbeiten</string>
     <string name="layouts_itemsHint">Zieh die Artikel in die Reihenfolge des Geschäfts.</string>

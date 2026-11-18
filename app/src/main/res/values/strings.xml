@@ -105,6 +105,7 @@
     <string name="layouts_modeHint_ITEMS">Exact order of products; unknown items go to the end.</string>
     <string name="layouts_sortBy">Sort</string>
     <string name="layouts_dragHint">Drag the categories into the order of the shop.</string>
+    <string name="layouts_categoryInShopHint">Switch off categories this shop doesn\'t have - their items go to the end of the list.</string>
     <string name="layouts_categoryInShop">%1$s in this shop</string>
     <string name="layouts_editCategories">Edit categories</string>
     <string name="layouts_itemsHint">Drag the items into the order of the shop.</string>

@@ -102,10 +102,13 @@ private fun AmountUnitFields(quantity: String, unit: String, units: List<String>
     }
 }
 
-/** The category of an item (add and edit sheets, items used before): searchable, see [CategoryPicker]. */
+/**
+ * The category of an item (add and edit sheets, items used before): searchable, see [CategoryPicker].
+ * [inactive]: categories the shop the list is sorted for doesn't have (last and greyed out).
+ */
 @Composable
-fun CategorySelect(label: String, noneLabel: String, value: String, catalog: Catalog?, onChange: (String) -> Unit) =
-    CategoryPicker(label, noneLabel, value, catalog?.categories.orEmpty(), onChange)
+fun CategorySelect(label: String, noneLabel: String, value: String, catalog: Catalog?, inactive: Set<String> = emptySet(), onChange: (String) -> Unit) =
+    CategoryPicker(label, noneLabel, value, catalog?.categories.orEmpty(), onChange, inactive)
 
 /**
  * The sheet behind the + button. "Add another" (or Enter) adds the item and keeps the sheet open, empty
@@ -117,6 +120,8 @@ fun CategorySelect(label: String, noneLabel: String, value: String, catalog: Cat
 @Composable
 fun AddItemSheet(
     catalog: Catalog?,
+    /** Categories the shop the list is sorted for doesn't have. */
+    inactiveCategories: Set<String>,
     suggestions: suspend (String) -> List<Suggestion>,
     onAdd: suspend (name: String, quantity: String?, unit: String?, categoryId: String?) -> String?,
     onDismiss: () -> Unit,
@@ -205,7 +210,7 @@ fun AddItemSheet(
             if (visible.isNotEmpty()) SuggestionList(visible, catalog, ::pickSuggestion)
         }
         if (voiceFailed) Text(stringResource(R.string.voice_error), style = MaterialTheme.typography.bodySmall, color = colors.danger)
-        CategorySelect(stringResource(R.string.item_category), stringResource(R.string.item_categoryAuto), categoryId, catalog) { categoryId = it }
+        CategorySelect(stringResource(R.string.item_category), stringResource(R.string.item_categoryAuto), categoryId, catalog, inactiveCategories) { categoryId = it }
         ErrorCodeText(errorCode)
         SheetActions(start = { AppButton(stringResource(R.string.common_cancel), onDismiss, variant = ButtonVariant.GHOST) }) {
             AppButton(stringResource(R.string.addItem_another), { addCurrent(close = false) }, variant = ButtonVariant.SECONDARY, enabled = amountValid && name.isNotBlank())
@@ -300,6 +305,7 @@ private fun VoiceButton(onText: (String) -> Unit, onFailed: (Boolean) -> Unit) {
 fun ItemEditorSheet(
     item: Item,
     catalog: Catalog?,
+    inactiveCategories: Set<String>,
     onSave: suspend (Map<ItemField, String?>) -> String?,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
@@ -334,7 +340,7 @@ fun ItemEditorSheet(
     AppSheet(item.name, onDismiss) {
         AmountUnitFields(quantity, unit, catalog?.units.orEmpty(), { quantity = it }, { unit = it })
         AppTextField(name, { name = it }, stringResource(R.string.item_name), maxLength = 100, imeAction = ImeAction.Next, isError = name.isBlank())
-        CategorySelect(stringResource(R.string.item_category), stringResource(R.string.item_noCategory), categoryId, catalog) { categoryId = it }
+        CategorySelect(stringResource(R.string.item_category), stringResource(R.string.item_noCategory), categoryId, catalog, inactiveCategories) { categoryId = it }
         AppTextField(note, { note = it }, stringResource(R.string.item_note), maxLength = 200, onImeAction = ::save)
         ErrorCodeText(errorCode)
         SheetActions(start = {

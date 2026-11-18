@@ -84,6 +84,7 @@ fun HistoryEntryDto.toDomain() = HistoryEntry(name, categoryId, unit, usageCount
 
 fun LayoutDto.toDomain() = ShopLayout(
     id, name, LayoutMode.valueOf(mode.name), categoryOrder, itemOrder, listIds, createdAt.toInstant(),
+    disabledCategories.orEmpty(), // missing from older servers
 )
 
 fun LayoutMode.toDto() = LayoutModeDto.valueOf(name)

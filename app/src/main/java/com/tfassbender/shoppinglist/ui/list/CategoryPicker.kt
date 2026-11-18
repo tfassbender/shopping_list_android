@@ -32,6 +32,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
@@ -57,7 +58,8 @@ import com.tfassbender.shoppinglist.ui.theme.AppTheme
  * Category field of the item sheets (port of the web app's `CategoryPicker`). A space can have many
  * categories, so this is a field that opens a list right below it, with a search field on top. The first
  * entry is "no category" (or "automatic"), labelled by [noneLabel] - only while not searching: a search is
- * for finding a category. Enter on the keyboard takes the first match.
+ * for finding a category. Enter on the keyboard takes the first match. [inactive] (categories the chosen
+ * shop doesn't have) come last and greyed out, but can be chosen.
  */
 @Composable
 fun CategoryPicker(
@@ -66,6 +68,7 @@ fun CategoryPicker(
     value: String,
     categories: List<Category>,
     onChange: (String) -> Unit,
+    inactive: Set<String> = emptySet(),
 ) {
     val colors = AppTheme.colors
     var open by rememberSaveable { mutableStateOf(false) }
@@ -74,7 +77,8 @@ fun CategoryPicker(
     val focusManager = LocalFocusManager.current
 
     val q = query.trim().lowercase()
-    val matches = categories.filter { it.name.lowercase().contains(q) }
+    val (activeMatches, inactiveMatches) = categories.filter { it.name.lowercase().contains(q) }.partition { it.id !in inactive }
+    val matches = activeMatches + inactiveMatches
     val options: List<Category?> = if (q.isNotEmpty()) matches else listOf(null) + matches
 
     fun choose(categoryId: String) {
@@ -129,6 +133,7 @@ fun CategoryPicker(
                                 .heightIn(min = 44.dp)
                                 .clickable(role = Role.RadioButton) { choose(id) }
                                 .semantics { this.selected = isSelected }
+                                .alpha(if (id in inactive) 0.45f else 1f)
                                 .padding(horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),

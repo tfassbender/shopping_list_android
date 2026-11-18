@@ -144,6 +144,11 @@ data class ShopLayout(
     val itemOrder: List<String> = emptyList(),
     val listIds: List<String> = emptyList(),
     val createdAt: SerializableInstant,
-)
+    /** Categories the shop doesn't have: their items are sorted to the end (mode CATEGORIES). */
+    val disabledCategories: List<String> = emptyList(),
+) {
+    /** The categories a list sorted for this shop puts last (only mode CATEGORIES uses categories). */
+    val inactiveCategories: Set<String> get() = if (mode == LayoutMode.CATEGORIES) disabledCategories.toSet() else emptySet()
+}
 
 data class Suggestion(val name: String, val categoryId: String?, val unit: String?, val usageCount: Int)

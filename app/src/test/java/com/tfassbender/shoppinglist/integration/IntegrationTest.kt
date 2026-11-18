@@ -223,6 +223,11 @@ class IntegrationTest {
         assertEquals(listOf("B last item", "C last item", "A first item"), sorted.map { it.name })
         assertEquals(listOf(shop.id), anna.layouts.shopChoices(space.id, listId).first().map { it.id }.take(1))
         assertTrue(anna.catalog.suggestions(space.id, "B l").any { it.name == "B last item" })
+
+        // a category the shop doesn't have goes to the end
+        assertEquals(listOf(last.id), anna.layouts.setDisabledCategories(space.id, shop.id, listOf(last.id)).value().disabledCategories)
+        val withoutLast = anna.layouts.sortedItems(space.id, listId, shop.id, checkedToEnd = false).first()
+        assertEquals(listOf("A first item", "B last item", "C last item"), withoutLast.map { it.name })
     }
 
     @Test

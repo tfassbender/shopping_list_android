@@ -12,14 +12,19 @@ import re
 import sys
 from pathlib import Path
 
-ENTRY = re.compile(r"""^\s*'?([\w.]+)'?\s*:\s*\n?\s*'((?:[^'\\]|\\.)*)'\s*,?\s*$""", re.M)
+# the value in single quotes, or in double quotes (texts with an apostrophe: "doesn't")
+ENTRY = re.compile(r"""^\s*'?([\w.]+)'?\s*:\s*\n?\s*(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)")\s*,?\s*$""", re.M)
 
 
 def parse(path: Path) -> dict:
     text = path.read_text(encoding="utf-8")
     # join "key':\n    'value'" continuation lines
-    text = re.sub(r":\s*\n\s+'", ": '", text)
-    return {m.group(1): m.group(2).replace("\\'", "'") for m in ENTRY.finditer(text)}
+    text = re.sub(r""":\s*\n\s+(['"])""", r": \1", text)
+    entries = {}
+    for m in ENTRY.finditer(text):
+        single, double = m.group(2), m.group(3)
+        entries[m.group(1)] = single.replace("\\'", "'") if single is not None else double.replace('\\"', '"')
+    return entries
 
 
 def res_name(key: str) -> str:
