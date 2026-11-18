@@ -125,8 +125,9 @@ private fun CategorySelect(label: String, noneLabel: String, value: String, cata
 /**
  * The sheet behind the + button. "Add another" (or Enter) adds the item and keeps the sheet open, empty
  * and focused, for the next one; "Done" adds the item (if one is entered) and closes; "Cancel" closes
- * without adding. Suggestions from the item history appear below the name - tapping one adds it at once
- * with its last category and unit. The category "Automatic" lets the server fill it in from the history.
+ * without adding. Suggestions from the item history appear below the name - tapping one fills in its name,
+ * last category and unit (not added yet, so category, amount or unit can still be changed; issue #1).
+ * The category "Automatic" lets the server fill it in from the history.
  */
 @Composable
 fun AddItemSheet(
@@ -144,13 +145,15 @@ fun AddItemSheet(
     var errorCode by remember { mutableStateOf<String?>(null) }
     var shown by remember { mutableStateOf<List<Suggestion>>(emptyList()) }
     var nameFocused by remember { mutableStateOf(true) }
+    // The name of the suggestion just picked: no suggestions for it until the name is changed again.
+    var picked by rememberSaveable { mutableStateOf<String?>(null) }
     var voiceFailed by remember { mutableStateOf(false) }
     val nameFocus = remember { FocusRequester() }
     val amountValid = isValidAmount(quantity)
 
     // Wait until the user stops typing (fewer server requests), then ask for suggestions.
     LaunchedEffect(name) {
-        if (name.isBlank()) {
+        if (name.isBlank() || name == picked) {
             shown = emptyList()
             return@LaunchedEffect
         }
@@ -163,6 +166,7 @@ fun AddItemSheet(
         quantity = ""
         unit = ""
         categoryId = ""
+        picked = null
         shown = emptyList()
         runCatching { nameFocus.requestFocus() }
     }
@@ -183,7 +187,14 @@ fun AddItemSheet(
     }
 
     /** A suggestion brings its last category and unit; an amount or unit chosen before is kept. */
-    fun addSuggestion(suggestion: Suggestion) = add(suggestion.name, unit.trim().ifEmpty { suggestion.unit }, suggestion.categoryId, close = false)
+    fun pickSuggestion(suggestion: Suggestion) {
+        picked = suggestion.name
+        name = suggestion.name
+        if (unit.isBlank()) unit = suggestion.unit.orEmpty()
+        categoryId = suggestion.categoryId.orEmpty()
+        shown = emptyList()
+        errorCode = null
+    }
 
     AppSheet(stringResource(R.string.addItem_title), onDismiss) {
         AmountUnitFields(quantity, unit, catalog?.units.orEmpty(), { quantity = it }, { unit = it })
@@ -206,7 +217,7 @@ fun AddItemSheet(
                 VoiceButton(onText = { name = it }, onFailed = { voiceFailed = it })
             }
             val visible = if (name.isNotBlank() && nameFocused) shown else emptyList()
-            if (visible.isNotEmpty()) SuggestionList(visible, catalog, ::addSuggestion)
+            if (visible.isNotEmpty()) SuggestionList(visible, catalog, ::pickSuggestion)
         }
         if (voiceFailed) Text(stringResource(R.string.voice_error), style = MaterialTheme.typography.bodySmall, color = colors.danger)
         CategorySelect(stringResource(R.string.item_category), stringResource(R.string.item_categoryAuto), categoryId, catalog) { categoryId = it }

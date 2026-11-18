@@ -61,10 +61,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -166,9 +168,17 @@ fun AppTextField(
             focused -> colors.accent
             else -> colors.line
         }
+        // A value set from outside (a picked suggestion, voice input) puts the cursor at its end.
+        var field by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length))) }
+        val current = if (field.text == value) field else TextFieldValue(value, TextRange(value.length))
         BasicTextField(
-            value = value,
-            onValueChange = { if (it.length <= maxLength) onValueChange(it) },
+            value = current,
+            onValueChange = {
+                if (it.text.length <= maxLength) {
+                    field = it
+                    if (it.text != value) onValueChange(it.text)
+                }
+            },
             enabled = enabled,
             singleLine = singleLine,
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = colors.fg),
