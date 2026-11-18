@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -244,17 +245,7 @@ fun SettingsScreen() {
                     onClick = { sheet = SettingsSheet.SERVER },
                     chevron = true,
                 )
-                Text(
-                    stringResource(R.string.app_name) + (version?.let { " " + stringResource(R.string.settings_version, it) } ?: ""),
-                    fontSize = 15.sp,
-                    color = colors.muted,
-                    modifier = Modifier.padding(start = 8.dp, top = 24.dp),
-                )
-                // About (issue #10): who made it and where the source code is.
-                val uriHandler = LocalUriHandler.current
-                Text(stringResource(R.string.about_creator), fontSize = 15.sp, color = colors.muted, modifier = Modifier.padding(start = 8.dp))
-                LinkText(stringResource(R.string.about_appSource), { uriHandler.openUri(APP_REPOSITORY) }, Modifier.padding(start = 8.dp))
-                LinkText(stringResource(R.string.about_serverSource), { uriHandler.openUri(SERVER_REPOSITORY) }, Modifier.padding(start = 8.dp))
+                About(version)
             }
         }
     }
@@ -302,8 +293,31 @@ fun SettingsScreen() {
     }
 }
 
-private const val APP_REPOSITORY = "https://github.com/tfassbender/shopping_list_android"
 private const val SERVER_REPOSITORY = "https://github.com/tfassbender/shopping_list_server"
+private const val ANDROID_REPOSITORY = "https://github.com/tfassbender/shopping_list_android"
+private const val HOMEPAGE = "https://tobias-fassbender.com"
+
+/** Version, creator and links to the source code, at the bottom of the settings (like the web app). */
+@Composable
+private fun About(version: String?) {
+    val colors = AppTheme.colors
+    val uriHandler = LocalUriHandler.current
+    Column(Modifier.padding(start = 8.dp, end = 8.dp, top = 24.dp)) {
+        Text(
+            stringResource(R.string.app_name) + (version?.let { " " + stringResource(R.string.settings_version, it) } ?: ""),
+            fontSize = 15.sp,
+            color = colors.muted,
+        )
+        Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.settings_createdBy) + " ", fontSize = 15.sp, color = colors.muted)
+            LinkText("Tobias Faßbender", { uriHandler.openUri(HOMEPAGE) })
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            LinkText(stringResource(R.string.settings_sourceCode), { uriHandler.openUri(SERVER_REPOSITORY) })
+            LinkText(stringResource(R.string.settings_androidApp), { uriHandler.openUri(ANDROID_REPOSITORY) })
+        }
+    }
+}
 
 @Composable
 private fun ValueText(text: String) {

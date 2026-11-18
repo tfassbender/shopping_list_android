@@ -18,7 +18,4 @@
     <string name="server_UNREACHABLE">Der Server ist nicht erreichbar. Prüfe die Adresse und deine Verbindung.</string>
     <string name="server_NOT_A_SHOPPING_LIST_SERVER">Unter dieser Adresse antwortet kein Einkaufslisten-Server.</string>
     <string name="server_onLogin">Server: %1$s</string>
-    <string name="about_creator">Entwickelt von Tobias Faßbender</string>
-    <string name="about_appSource">Android-App auf GitHub</string>
-    <string name="about_serverSource">Server und Web-App auf GitHub</string>
 </resources>

@@ -19,7 +19,4 @@
     <string name="server_UNREACHABLE">The server can\'t be reached. Check the address and your connection.</string>
     <string name="server_NOT_A_SHOPPING_LIST_SERVER">No shopping list server answers at this address.</string>
     <string name="server_onLogin">Server: %1$s</string>
-    <string name="about_creator">Made by Tobias Faßbender</string>
-    <string name="about_appSource">Android app on GitHub</string>
-    <string name="about_serverSource">Server and web app on GitHub</string>
 </resources>

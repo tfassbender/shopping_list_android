@@ -307,7 +307,7 @@
     <string name="settings_logoutEverywhereButton">Log out others</string>
     <string name="settings_deleteAccountTitle">Delete your account?</string>
     <string name="settings_version">version %1$s</string>
-    <string name="settings_createdBy">Made by %1$s</string>
+    <string name="settings_createdBy">Made by</string>
     <string name="settings_sourceCode">Source code on GitHub</string>
     <string name="settings_androidApp">Android app on GitHub</string>
     <string name="tokens_empty">No tokens yet. Create one with +.</string>
