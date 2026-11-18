@@ -35,3 +35,7 @@ refresh it with `python .claude/skills/update-openapi/fetch_openapi.py`.
 - [Implementation plan](doc/implementation_plan.md) – phases, status, decisions
 - [Tech stack & architecture](doc/tech_stack.md)
 - [Server API reference](doc/server_api.md)
+
+## License
+
+[MIT](LICENSE) © 2026 Tobias Faßbender
