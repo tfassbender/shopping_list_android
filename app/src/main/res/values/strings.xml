@@ -91,6 +91,8 @@
     <string name="catalog_deleteCategory">Delete %1$s</string>
     <string name="catalog_deleteCategoryText">Its items become uncategorized. This applies to all lists of the space.</string>
     <string name="catalog_units">Units</string>
+    <string name="catalog_unitsHint">Tap a unit to preselect it for new items (★). Tap it again to go back to no unit.</string>
+    <string name="catalog_defaultUnit">Use %1$s as default unit</string>
     <string name="catalog_newUnit">New unit</string>
     <string name="catalog_removeUnit">Remove unit %1$s</string>
     <string name="sortable_handle">Move %1$s</string>
@@ -208,7 +210,6 @@
     <string name="tokens_revokeConfirm">Agents using this token lose access immediately.</string>
     <string name="offline_badge">Offline</string>
     <string name="offline_badgePending">Offline · %1$s unsaved</string>
-    <string name="offline_saving">Saving...</string>
     <string name="offline_storageFailedShort">Not saved on device</string>
     <string name="offline_storageFailed">This device could not store your data. Changes made offline will be lost when the app is closed.</string>
     <string name="offline_needsConnection">You are offline. This needs a connection to the server - lists still work offline.</string>
@@ -355,6 +356,7 @@
     <string name="error_CATEGORY_NOT_FOUND">This category was deleted in the meantime.</string>
     <string name="error_CATEGORY_EXISTS">This category already exists.</string>
     <string name="error_INVALID_UNIT">A unit must have 1-20 characters.</string>
+    <string name="error_UNIT_NOT_FOUND">No unit with this name exists.</string>
     <string name="error_INVALID_ORDER">The order changed in the meantime. Please try again.</string>
     <string name="error_INVALID_ID">Invalid id.</string>
     <string name="error_LAYOUT_NOT_FOUND">This shop does not exist (anymore).</string>

@@ -534,9 +534,10 @@ fun PageContent(padding: PaddingValues, modifier: Modifier = Modifier, content: 
 
 /** A chip-like round-rect with a thin outline, e.g. units in the catalog. */
 @Composable
-fun Chip(content: @Composable RowScope.() -> Unit) {
+fun Chip(highlighted: Boolean = false, startPadding: Dp = 12.dp, content: @Composable RowScope.() -> Unit) {
+    val colors = AppTheme.colors
     Row(
-        Modifier.clip(CircleShape).background(AppTheme.colors.raised).padding(start = 12.dp, end = 2.dp),
+        Modifier.clip(CircleShape).background(if (highlighted) colors.accent.copy(alpha = 0.2f) else colors.raised).padding(start = startPadding, end = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
         content = content,
     )

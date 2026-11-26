@@ -103,6 +103,8 @@ data class Catalog(
     /** In the space's order. */
     val categories: List<Category> = emptyList(),
     val units: List<String> = emptyList(),
+    /** Unit preselected for new items (one of [units]); null: no unit (server issue #12). */
+    val defaultUnit: String? = null,
     /** How often each item was bought: normalized name (see [normalizeName]) → count. Derived from [history]. */
     val usage: Map<String, Int> = emptyMap(),
     /** All items used before in the space (alphabetically) - the source of offline suggestions. */

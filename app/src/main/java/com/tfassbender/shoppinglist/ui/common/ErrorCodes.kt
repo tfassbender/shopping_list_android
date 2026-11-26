@@ -39,6 +39,7 @@ fun errorMessageRes(code: String?): Int? = when (code) {
     "CATEGORY_NOT_FOUND" -> R.string.error_CATEGORY_NOT_FOUND
     "CATEGORY_EXISTS" -> R.string.error_CATEGORY_EXISTS
     "INVALID_UNIT" -> R.string.error_INVALID_UNIT
+    "UNIT_NOT_FOUND" -> R.string.error_UNIT_NOT_FOUND
     "INVALID_ORDER" -> R.string.error_INVALID_ORDER
     "INVALID_ID" -> R.string.error_INVALID_ID
     "LAYOUT_NOT_FOUND" -> R.string.error_LAYOUT_NOT_FOUND

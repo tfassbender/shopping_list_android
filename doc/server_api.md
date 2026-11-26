@@ -146,14 +146,16 @@ plain endpoints are still useful for reading, for deleting lists (not a sync cha
 | DELETE | `/categories/{categoryId}`   | –    | `CatalogDto` (its items become uncategorized) |
 | PUT    | `/categories/order`          | `{ids: [...all category ids]}` | `CatalogDto` |
 | PUT    | `/units`                     | `{units: [...]}` (replaces) | `CatalogDto` |
+| PUT    | `/units/default`             | `{unit?}` (one of the units; null: none) | `CatalogDto` |
 | GET    | `/suggestions?q=&limit=8`    | –    | `SuggestionDto[]` |
 | GET    | `/history`                   | –    | `HistoryEntryDto[]` (alphabetically) |
 | PUT    | `/history?name=`             | `{name}` | `HistoryEntryDto[]` (rename; merged if the new name exists) |
 | PUT    | `/history/category?name=`    | `{categoryId?}` | `HistoryEntryDto[]` (category for automatic placement; null: none) |
 | DELETE | `/history?name=`             | –    | `HistoryEntryDto[]` (forget) |
 
-- `CatalogDto = {categories: [{id, name, color}] (in order), units: string[], usage: {normalizedName: count},
-  history: HistoryEntryDto[]}`
+- `CatalogDto = {categories: [{id, name, color}] (in order), units: string[], defaultUnit?,
+  usage: {normalizedName: count}, history: HistoryEntryDto[]}` – `defaultUnit`: preselected for new items
+  (only a client preselection, the server never fills it in; removing its unit clears it).
 - `HistoryEntryDto = {name, categoryId?, unit?, usageCount, lastUsed}` – items used before in the space.
 - `SuggestionDto = {name, categoryId?, unit?, usageCount}` – names starting with the query first, then
   word-prefix matches; by usage count, then recency, then name. The app ranks the cached `history` the
@@ -255,5 +257,5 @@ INVALID_ITEM_NAME INVALID_LANGUAGE INVALID_NAME INVALID_ORDER INVALID_TOKEN INVA
 INVITE_NOT_FOUND ITEM_EXISTS ITEM_NOT_FOUND LAYOUT_EXISTS LAYOUT_NOT_FOUND LIST_EXISTS LIST_FULL
 LIST_NOT_FOUND MEMBER_NOT_FOUND OWNER_CANNOT_LEAVE OWNER_ONLY PASSWORD_TOO_LONG PASSWORD_TOO_SHORT
 SESSION_EXPIRED SPACE_NOT_FOUND TOKEN_NOT_FOUND TOO_MANY_CATEGORIES TOO_MANY_REQUESTS TOO_MANY_TOKENS
-TOO_MANY_UNITS USER_NOT_FOUND WRONG_PASSWORD INTERNAL_ERROR`, plus framework codes like `UNAUTHORIZED`.
+TOO_MANY_UNITS UNIT_NOT_FOUND USER_NOT_FOUND WRONG_PASSWORD INTERNAL_ERROR`, plus framework codes like `UNAUTHORIZED`.
 Sync push rejections additionally use `INVALID_CHANGE`.

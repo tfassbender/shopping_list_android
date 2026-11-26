@@ -135,7 +135,10 @@ fun AddItemSheet(
     val scope = rememberCoroutineScope()
     var name by rememberSaveable { mutableStateOf("") }
     var quantity by rememberSaveable { mutableStateOf("") }
-    var unit by rememberSaveable { mutableStateOf("") }
+    // null until the user picks a unit: until then the space's default unit is shown (the catalog may still
+    // be loading when the sheet opens, so it is not copied in once). As in the web app (server issue #12).
+    var chosenUnit by rememberSaveable { mutableStateOf<String?>(null) }
+    val unit = chosenUnit ?: catalog?.defaultUnit.orEmpty()
     var categoryId by rememberSaveable { mutableStateOf("") }
     var errorCode by remember { mutableStateOf<String?>(null) }
     var shown by remember { mutableStateOf<List<Suggestion>>(emptyList()) }
@@ -159,7 +162,7 @@ fun AddItemSheet(
     fun clear() {
         name = ""
         quantity = ""
-        unit = ""
+        chosenUnit = null
         categoryId = ""
         picked = null
         shown = emptyList()
@@ -181,11 +184,14 @@ fun AddItemSheet(
         else if (close) onDismiss()
     }
 
-    /** A suggestion brings its last category and unit; an amount or unit chosen before is kept. */
+    /**
+     * A suggestion brings its last category and unit; an amount or unit chosen before is kept. The default
+     * unit doesn't count as chosen - the unit the item was used with last time fits it better.
+     */
     fun pickSuggestion(suggestion: Suggestion) {
         picked = suggestion.name
         name = suggestion.name
-        if (unit.isBlank()) unit = suggestion.unit.orEmpty()
+        if (chosenUnit.isNullOrBlank()) chosenUnit = suggestion.unit.orEmpty()
         categoryId = suggestion.categoryId.orEmpty()
         shown = emptyList()
         errorCode = null
@@ -193,7 +199,7 @@ fun AddItemSheet(
 
     // Dense: the name field is the one that matters and must stay above the keyboard (app issue #5).
     AppSheet(stringResource(R.string.addItem_title), onDismiss, dense = true) {
-        AmountUnitFields(quantity, unit, catalog?.units.orEmpty(), { quantity = it }, { unit = it })
+        AmountUnitFields(quantity, unit, catalog?.units.orEmpty(), { quantity = it }, { chosenUnit = it })
         Column {
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AppTextField(

@@ -76,6 +76,7 @@ fun CreatedApiTokenDto.toDomain() = CreatedApiToken(token.toDomain(), rawToken)
 fun CatalogDto.toDomain() = Catalog(
     categories = categories.map { Category(it.id, it.name, it.color) },
     units = units,
+    defaultUnit = defaultUnit,
     usage = usage.orEmpty(),
     history = history.orEmpty().map { it.toDomain() },
 )

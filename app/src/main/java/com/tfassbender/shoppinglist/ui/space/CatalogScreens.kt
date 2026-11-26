@@ -1,5 +1,10 @@
 package com.tfassbender.shoppinglist.ui.space
 
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -105,6 +110,8 @@ class CatalogViewModel(private val container: AppContainer, private val spaceId:
     fun delete(category: Category) = act({ repo.deleteCategory(spaceId, category.id) })
 
     fun setUnits(units: List<String>) = act({ repo.setUnits(spaceId, units) })
+
+    fun setDefaultUnit(unit: String?) = act({ repo.setDefaultUnit(spaceId, unit) })
 }
 
 private const val DEFAULT_NEW_COLOR = "#78909c"
@@ -140,7 +147,7 @@ fun CatalogScreen(spaceId: String) {
                 }
                 NewCategoryForm(enabled, vm::add)
                 SectionTitle(stringResource(R.string.catalog_units))
-                UnitsEditor(current.units, enabled, vm::setUnits)
+                UnitsEditor(current.units, current.defaultUnit, enabled, vm::setUnits, vm::setDefaultUnit)
             }
         }
     }
@@ -215,9 +222,14 @@ private fun NewCategoryForm(enabled: Boolean, onAdd: (String, String) -> Unit) {
     }
 }
 
+/**
+ * The units as chips. Tapping a unit's name makes it the default (preselected for new items, marked with a
+ * star); tapping the default again clears it (server issue #12). The server clears the default when its
+ * unit is removed.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun UnitsEditor(units: List<String>, enabled: Boolean, onChange: (List<String>) -> Unit) {
+private fun UnitsEditor(units: List<String>, defaultUnit: String?, enabled: Boolean, onChange: (List<String>) -> Unit, onDefaultChange: (String?) -> Unit) {
     var newUnit by rememberSaveable { mutableStateOf("") }
     val submit = {
         if (newUnit.isNotBlank()) {
@@ -226,10 +238,21 @@ private fun UnitsEditor(units: List<String>, enabled: Boolean, onChange: (List<S
         }
     }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(stringResource(R.string.catalog_unitsHint), style = MaterialTheme.typography.bodySmall, color = AppTheme.colors.muted)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             units.forEach { unit ->
-                Chip {
-                    Text(unit)
+                val isDefault = unit == defaultUnit
+                Chip(highlighted = isDefault, startPadding = 4.dp) {
+                    val label = stringResource(R.string.catalog_defaultUnit, unit)
+                    Text(
+                        if (isDefault) "★ $unit" else unit,
+                        fontWeight = if (isDefault) FontWeight.Medium else FontWeight.Normal,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .toggleable(value = isDefault, enabled = enabled, role = Role.Switch) { onDefaultChange(if (isDefault) null else unit) }
+                            .semantics { contentDescription = label }
+                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                    )
                     IconButton(onClick = { onChange(units - unit) }, enabled = enabled, modifier = Modifier.size(36.dp)) {
                         Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.catalog_removeUnit, unit), tint = AppTheme.colors.muted, modifier = Modifier.size(16.dp))
                     }

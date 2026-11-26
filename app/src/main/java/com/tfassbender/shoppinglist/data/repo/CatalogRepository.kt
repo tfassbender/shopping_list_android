@@ -2,6 +2,7 @@ package com.tfassbender.shoppinglist.data.repo
 
 import com.tfassbender.shoppinglist.api.apis.CatalogApi
 import com.tfassbender.shoppinglist.api.models.CatalogDto
+import com.tfassbender.shoppinglist.api.models.DefaultUnitRequest
 import com.tfassbender.shoppinglist.api.models.CategoryRequest
 import com.tfassbender.shoppinglist.api.models.HistoryCategoryRequest
 import com.tfassbender.shoppinglist.api.models.HistoryEntryDto
@@ -58,6 +59,13 @@ class CatalogRepository(
     /** Replaces the list of units. */
     suspend fun setUnits(spaceId: String, units: List<String>): ApiResult<Catalog> =
         edit(spaceId) { api.setUnits(spaceId = spaceId, unitsRequest = UnitsRequest(units.map { it.trim() }.filter { it.isNotEmpty() })) }
+
+    /**
+     * The unit preselected for new items ([unit] one of the units, null: no unit). Removing its unit with
+     * [setUnits] clears it on the server. Errors: `UNIT_NOT_FOUND`.
+     */
+    suspend fun setDefaultUnit(spaceId: String, unit: String?): ApiResult<Catalog> =
+        edit(spaceId) { api.setDefaultUnit(spaceId = spaceId, defaultUnitRequest = DefaultUnitRequest(unit)) }
 
     /**
      * Autocomplete for the quick-add field: the server's suggestions when online, otherwise the cached item

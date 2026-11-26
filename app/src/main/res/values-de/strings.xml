@@ -91,6 +91,8 @@
     <string name="catalog_deleteCategory">%1$s löschen</string>
     <string name="catalog_deleteCategoryText">Ihre Artikel haben dann keine Kategorie mehr. Das gilt für alle Listen des Bereichs.</string>
     <string name="catalog_units">Einheiten</string>
+    <string name="catalog_unitsHint">Tippe auf eine Einheit, um sie für neue Artikel vorauszuwählen (★). Nochmal tippen: wieder keine Einheit.</string>
+    <string name="catalog_defaultUnit">%1$s als Standardeinheit verwenden</string>
     <string name="catalog_newUnit">Neue Einheit</string>
     <string name="catalog_removeUnit">Einheit %1$s entfernen</string>
     <string name="sortable_handle">%1$s verschieben</string>
@@ -208,7 +210,6 @@
     <string name="tokens_revokeConfirm">Agenten, die dieses Token nutzen, verlieren sofort den Zugriff.</string>
     <string name="offline_badge">Offline</string>
     <string name="offline_badgePending">Offline · %1$s ungespeichert</string>
-    <string name="offline_saving">Speichert...</string>
     <string name="offline_storageFailedShort">Nicht auf dem Gerät gespeichert</string>
     <string name="offline_storageFailed">Dieses Gerät konnte deine Daten nicht speichern. Offline gemachte Änderungen gehen beim Schließen der App verloren.</string>
     <string name="offline_needsConnection">Du bist offline. Das hier braucht eine Verbindung zum Server - Listen funktionieren auch offline.</string>
@@ -355,6 +356,7 @@
     <string name="error_CATEGORY_NOT_FOUND">Diese Kategorie wurde inzwischen gelöscht.</string>
     <string name="error_CATEGORY_EXISTS">Diese Kategorie gibt es schon.</string>
     <string name="error_INVALID_UNIT">Eine Einheit muss 1-20 Zeichen haben.</string>
+    <string name="error_UNIT_NOT_FOUND">Diese Einheit gibt es nicht.</string>
     <string name="error_INVALID_ORDER">Die Reihenfolge hat sich inzwischen geändert. Bitte versuch es noch einmal.</string>
     <string name="error_INVALID_ID">Ungültige ID.</string>
     <string name="error_LAYOUT_NOT_FOUND">Dieses Geschäft gibt es nicht (mehr).</string>
