@@ -283,7 +283,7 @@ Decided while implementing:
       2026-11-12: identical apart from the version)
 - [x] Minified release build runs (R8 keep rule for WorkManager's Room database in `proguard-rules.pro`;
       checked on the emulator against the production server)
-- [x] Release signing (`doc/releases.md`), version 1.0.0 (1.1.0: the web app's features of app issue #4); distributed as APK (no Play Store for now)
+- [x] Release signing (`doc/releases.md`), version 1.0.0 (1.1.0: the web app's features of app issue #4; 1.2.0: default unit (server #12) and app issue #5); distributed as APK (no Play Store for now)
 - ~~App Links~~ postponed (decided 2026-11-12) – invite links open in the browser / "join by link" in the app
 
 ## Decisions

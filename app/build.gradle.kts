@@ -38,7 +38,7 @@ openApiGenerate {
 // --- Version -----------------------------------------------------------------------------------
 // The only place to change for a release. versionCode is derived from it and must grow with every
 // update: MAJOR * 10000 + MINOR * 100 + PATCH (0.1.0 -> 100, 0.1.1 -> 101).
-val appVersion = "1.1.0"
+val appVersion = "1.2.0"
 val appVersionCode = appVersion.split(".").map(String::toInt).let { (major, minor, patch) ->
     require(minor < 100 && patch < 100) { "minor and patch must be < 100" }
     major * 10_000 + minor * 100 + patch
