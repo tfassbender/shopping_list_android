@@ -48,6 +48,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.tfassbender.shoppinglist.ui.common.fieldMetrics
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.sp
 import com.tfassbender.shoppinglist.R
 import com.tfassbender.shoppinglist.domain.Catalog
@@ -186,7 +191,8 @@ fun AddItemSheet(
         errorCode = null
     }
 
-    AppSheet(stringResource(R.string.addItem_title), onDismiss) {
+    // Dense: the name field is the one that matters and must stay above the keyboard (app issue #5).
+    AppSheet(stringResource(R.string.addItem_title), onDismiss, dense = true) {
         AmountUnitFields(quantity, unit, catalog?.units.orEmpty(), { quantity = it }, { unit = it })
         Column {
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -247,13 +253,44 @@ private fun SuggestionList(suggestions: List<Suggestion>, catalog: Catalog?, onP
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 ColorDot(category?.let { parseColor(it.color) } ?: Color.Transparent, 12.dp)
-                Text(suggestion.name, modifier = Modifier.weight(1f))
-                if (category != null) Text(category.name, fontSize = 15.sp, color = colors.muted)
+                NameAndCategory(
+                    name = { Text(suggestion.name) },
+                    category = { if (category != null) Text(category.name, fontSize = 15.sp, color = colors.muted, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End) },
+                    modifier = Modifier.weight(1f).padding(vertical = 6.dp),
+                )
             }
             if (index < suggestions.lastIndex) HorizontalDivider(color = colors.line)
         }
     }
 }
+
+/**
+ * A suggestion's name and its category side by side (app issue #5). The name is what matters: it gets the
+ * width it needs, the category the rest (ellipsis if that is too little). Only a very long name is wrapped,
+ * so the category keeps at least [CATEGORY_MIN_SHARE] of the row and stays readable.
+ */
+@Composable
+private fun NameAndCategory(name: @Composable () -> Unit, category: @Composable () -> Unit, modifier: Modifier = Modifier) {
+    Layout(contents = listOf(name, category), modifier = modifier) { (nameMeasurables, categoryMeasurables), constraints ->
+        val width = constraints.maxWidth
+        val gap = 8.dp.roundToPx()
+        val categoryWanted = categoryMeasurables.sumOf { it.maxIntrinsicWidth(constraints.maxHeight) }
+        val categoryReserved = if (categoryWanted == 0) 0 else minOf(categoryWanted + gap, (width * CATEGORY_MIN_SHARE).toInt())
+        val namePlaceables = nameMeasurables.map { it.measure(Constraints(maxWidth = (width - categoryReserved).coerceAtLeast(0))) }
+        val nameWidth = namePlaceables.maxOfOrNull { it.width } ?: 0
+        val categoryWidth = (width - nameWidth - gap).coerceAtLeast(0)
+        val categoryPlaceables = categoryMeasurables.map { it.measure(Constraints(maxWidth = categoryWidth)) }
+        val height = maxOf(namePlaceables.maxOfOrNull { it.height } ?: 0, categoryPlaceables.maxOfOrNull { it.height } ?: 0)
+            .coerceAtLeast(constraints.minHeight)
+        layout(width, height) {
+            namePlaceables.forEach { it.placeRelative(0, (height - it.height) / 2) }
+            categoryPlaceables.forEach { it.placeRelative(width - it.width, (height - it.height) / 2) }
+        }
+    }
+}
+
+/** The share of a suggestion row the category keeps even next to a very long name. */
+private const val CATEGORY_MIN_SHARE = 0.3f
 
 /**
  * Speak an item: Android's speech recognizer (on-device where available). The recognized text goes into
@@ -275,7 +312,7 @@ private fun VoiceButton(onText: (String) -> Unit, onFailed: (Boolean) -> Unit) {
     val label = stringResource(R.string.voice_start)
     Box(
         Modifier
-            .size(50.dp)
+            .size(fieldMetrics().minHeight)
             .clip(RoundedCornerShape(8.dp))
             .border(1.dp, colors.line, RoundedCornerShape(8.dp))
             .clickable {

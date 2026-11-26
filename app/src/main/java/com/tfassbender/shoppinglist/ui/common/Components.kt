@@ -47,6 +47,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -137,6 +138,21 @@ fun LinkText(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, m
     )
 }
 
+/**
+ * Sizes of the input fields. [AppSheet] with `dense = true` makes the fields in it smaller, so a sheet
+ * with several fields keeps its important one above the keyboard (add item sheet, app issue #5).
+ */
+class FieldMetrics(val minHeight: Dp, val innerPadding: Dp, val labelGap: Dp)
+
+private val RegularFields = FieldMetrics(minHeight = 50.dp, innerPadding = 12.dp, labelGap = 4.dp)
+private val DenseFields = FieldMetrics(minHeight = 44.dp, innerPadding = 8.dp, labelGap = 2.dp)
+
+val LocalDenseFields = staticCompositionLocalOf { false }
+
+/** The sizes for the fields at this point of the UI, see [FieldMetrics]. */
+@Composable
+fun fieldMetrics(): FieldMetrics = if (LocalDenseFields.current) DenseFields else RegularFields
+
 /** The look of every text input: label above, raised fill, thin line, accent line when focused. */
 @Composable
 fun AppTextField(
@@ -160,9 +176,10 @@ fun AppTextField(
     val colors = AppTheme.colors
     var focused by remember { mutableStateOf(false) }
     val requester = focusRequester ?: remember { FocusRequester() }
+    val metrics = fieldMetrics()
     if (autoFocus) LaunchedEffect(Unit) { runCatching { requester.requestFocus() } }
     Column(modifier) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = colors.muted, modifier = Modifier.padding(bottom = 4.dp))
+        Text(label, style = MaterialTheme.typography.bodySmall, color = colors.muted, modifier = Modifier.padding(bottom = metrics.labelGap))
         val borderColor = when {
             isError -> colors.danger
             focused -> colors.accent
@@ -201,14 +218,14 @@ fun AppTextField(
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 50.dp)
+                        .heightIn(min = metrics.minHeight)
                         .clip(RoundedCornerShape(8.dp))
                         .background(colors.raised)
                         .border(if (focused || isError) 2.dp else 1.dp, borderColor, RoundedCornerShape(8.dp))
                         .padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(Modifier.weight(1f).padding(vertical = 12.dp)) { inner() }
+                    Box(Modifier.weight(1f).padding(vertical = metrics.innerPadding)) { inner() }
                     trailing?.invoke()
                 }
             },
@@ -229,13 +246,14 @@ fun <T> SelectField(
     val colors = AppTheme.colors
     var open by remember { mutableStateOf(false) }
     val current = options.firstOrNull { it.first == value }?.second.orEmpty()
+    val metrics = fieldMetrics()
     Column(modifier) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = colors.muted, modifier = Modifier.padding(bottom = 4.dp))
+        Text(label, style = MaterialTheme.typography.bodySmall, color = colors.muted, modifier = Modifier.padding(bottom = metrics.labelGap))
         Box {
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 50.dp)
+                    .heightIn(min = metrics.minHeight)
                     .clip(RoundedCornerShape(8.dp))
                     .background(colors.raised)
                     .border(1.dp, colors.line, RoundedCornerShape(8.dp))

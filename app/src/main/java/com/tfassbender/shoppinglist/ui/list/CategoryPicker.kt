@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import com.tfassbender.shoppinglist.R
 import com.tfassbender.shoppinglist.domain.Category
 import com.tfassbender.shoppinglist.ui.common.ColorDot
+import com.tfassbender.shoppinglist.ui.common.fieldMetrics
 import com.tfassbender.shoppinglist.ui.theme.AppTheme
 
 /**
@@ -89,12 +90,13 @@ fun CategoryPicker(
         query = ""
     }
 
+    val metrics = fieldMetrics()
     Column {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = colors.muted, modifier = Modifier.padding(bottom = 4.dp))
+        Text(label, style = MaterialTheme.typography.bodySmall, color = colors.muted, modifier = Modifier.padding(bottom = metrics.labelGap))
         Row(
             Modifier
                 .fillMaxWidth()
-                .heightIn(min = 50.dp)
+                .heightIn(min = metrics.minHeight)
                 .clip(RoundedCornerShape(8.dp))
                 .background(colors.raised)
                 .border(1.dp, colors.line, RoundedCornerShape(8.dp))

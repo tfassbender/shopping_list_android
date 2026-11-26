@@ -59,6 +59,12 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.ViewConfiguration
+import androidx.compose.ui.platform.LocalViewConfiguration
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -286,13 +292,27 @@ private fun ItemList(
     }
 }
 
-/** One item: tapping the row checks/unchecks it; the pencil opens the details. Checked = struck through. */
+/** How long an item must be held to open its details (app issue #5) - half a second, as in the web app. */
+private const val EDIT_LONG_PRESS_MILLIS = 500L
+
+/**
+ * One item: tapping the row checks/unchecks it; the pencil - or holding the row for half a second - opens the
+ * details. Checked = struck through.
+ */
 @Composable
 private fun ItemRow(item: Item, barColor: Color?, onToggle: () -> Unit, onEdit: () -> Unit, modifier: Modifier = Modifier) {
     val colors = AppTheme.colors
     val amount = formatAmount(item.quantity, item.unit)
     val checkedLabel = stringResource(R.string.warnings_checked)
     val uncheckedLabel = stringResource(R.string.warnings_unchecked)
+    val editLabel = stringResource(R.string.item_editNamed, item.name)
+    val haptics = LocalHapticFeedback.current
+    val viewConfiguration = LocalViewConfiguration.current
+    val slowLongPress = remember(viewConfiguration) {
+        object : ViewConfiguration by viewConfiguration {
+            override val longPressTimeoutMillis = EDIT_LONG_PRESS_MILLIS
+        }
+    }
     Column(modifier) {
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
             if (barColor != null) {
@@ -306,34 +326,44 @@ private fun ItemRow(item: Item, barColor: Color?, onToggle: () -> Unit, onEdit: 
                         .alpha(if (item.checked) 0.4f else 1f),
                 )
             }
-            Column(
-                Modifier
-                    .weight(1f)
-                    .heightIn(min = 56.dp)
-                    .clickable(role = Role.Checkbox, onClick = onToggle)
-                    .semantics { stateDescription = if (item.checked) checkedLabel else uncheckedLabel }
-                    .padding(horizontal = 8.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.Center,
-            ) {
-                val decoration = if (item.checked) TextDecoration.LineThrough else TextDecoration.None
-                val weight = if (item.checked) FontWeight.Normal else FontWeight.SemiBold
-                Text(
-                    buildAnnotatedString {
-                        if (amount.isNotEmpty()) {
-                            withStyle(SpanStyle(fontWeight = weight)) { append(amount) }
-                            append(" ")
-                        }
-                        withStyle(SpanStyle(fontWeight = weight)) { append(item.name) }
-                    },
-                    fontSize = 19.sp,
-                    color = if (item.checked) colors.muted else colors.fg,
-                    textDecoration = decoration,
-                )
-                if (!item.note.isNullOrEmpty()) {
-                    Text(item.note, fontSize = 15.sp, color = colors.muted, maxLines = 1, overflow = TextOverflow.Ellipsis, textDecoration = decoration)
+            // The long press timeout is read where the modifier sits, so only this row part gets the slow one.
+            CompositionLocalProvider(LocalViewConfiguration provides slowLongPress) {
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .heightIn(min = 56.dp)
+                        .combinedClickable(
+                            role = Role.Checkbox,
+                            onClick = onToggle,
+                            onLongClickLabel = editLabel,
+                            onLongClick = {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onEdit()
+                            },
+                        )
+                        .semantics { stateDescription = if (item.checked) checkedLabel else uncheckedLabel }
+                        .padding(horizontal = 8.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    val decoration = if (item.checked) TextDecoration.LineThrough else TextDecoration.None
+                    val weight = if (item.checked) FontWeight.Normal else FontWeight.SemiBold
+                    Text(
+                        buildAnnotatedString {
+                            if (amount.isNotEmpty()) {
+                                withStyle(SpanStyle(fontWeight = weight)) { append(amount) }
+                                append(" ")
+                            }
+                            withStyle(SpanStyle(fontWeight = weight)) { append(item.name) }
+                        },
+                        fontSize = 19.sp,
+                        color = if (item.checked) colors.muted else colors.fg,
+                        textDecoration = decoration,
+                    )
+                    if (!item.note.isNullOrEmpty()) {
+                        Text(item.note, fontSize = 15.sp, color = colors.muted, maxLines = 1, overflow = TextOverflow.Ellipsis, textDecoration = decoration)
+                    }
                 }
             }
-            val editLabel = stringResource(R.string.item_editNamed, item.name)
             Box(
                 Modifier
                     .size(48.dp)

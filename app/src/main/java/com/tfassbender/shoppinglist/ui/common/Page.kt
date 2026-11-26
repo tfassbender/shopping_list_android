@@ -38,6 +38,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -213,11 +214,12 @@ private fun OverflowMenu(entries: List<MenuEntry>) {
 
 /**
  * A modal sheet sliding up from the bottom (thumb-friendly, as the web app's dialogs on phones). With
- * text fields the keyboard pushes it up.
+ * text fields the keyboard pushes it up. [dense]: less space between the parts and smaller fields
+ * ([LocalDenseFields]) - for sheets whose main field must stay above the keyboard (add item).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppSheet(title: String, onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+fun AppSheet(title: String, onDismiss: () -> Unit, dense: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
     val colors = AppTheme.colors
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -231,11 +233,11 @@ fun AppSheet(title: String, onDismiss: () -> Unit, content: @Composable ColumnSc
                 .fillMaxWidth()
                 .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(start = 20.dp, end = 20.dp, top = if (dense) 14.dp else 20.dp, bottom = if (dense) 14.dp else 20.dp),
+            verticalArrangement = Arrangement.spacedBy(if (dense) 8.dp else 16.dp),
         ) {
             Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
-            content()
+            CompositionLocalProvider(LocalDenseFields provides dense) { content() }
         }
     }
 }
